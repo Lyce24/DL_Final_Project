@@ -1,0 +1,58 @@
+# Ignore compiled files and build artifacts
+*.o
+*.obj
+*.so
+*.exe
+*.dll
+
+# Ignore Python virtual environment folders
+venv/
+env/
+
+# Ignore Python compiled files
+*.pyc
+*.pyo
+__pycache__/
+
+# Ignore IDE and editor files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Ignore log files
+*.log
+
+# Ignore OS-generated files
+.DS_Store
+Thumbs.db
+
+# Ignore Node.js dependencies
+node_modules/
+
+# Ignore coverage reports
+coverage/
+*.cover
+
+# Ignore environment files
+.env
+
+# Ignore temporary files
+*.tmp
+*.swp
+*~
+
+# Ignore build output
+/dist/
+/build/
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore MacOS .Spotlight-V100 and .Trashes folders
+.Spotlight-V100
+.Trashes
+
+# Ignore Hydra Error and Output Files
+*.err
+*.out
