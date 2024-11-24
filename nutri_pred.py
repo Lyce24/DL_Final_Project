@@ -155,7 +155,7 @@ loss_fn = nn.MSELoss()  # Mean Squared Error (MSE) loss
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
 
 # Train the model
-train_model(model, train_loader, loss_fn, optimizer, num_epochs=50, save_path="./baseline_inv2.pth")
+train_model(model, train_loader, val_loader, loss_fn, optimizer, num_epochs=50, save_path="./baseline_inv2.pth")
 
 
 def test_model(model, dataloader):
