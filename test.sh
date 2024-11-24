@@ -21,6 +21,7 @@
 
 # Request an hour of runtime. Default runtime on the compute partition is 1 hour.
 #SBATCH --time=1:00:00
+#SBATCH --mem=6G                       # Request 6GB of memory
 
 # Specify a job name:
 #SBATCH -J MyPythonJob
@@ -30,5 +31,6 @@
 #SBATCH -e MyPythonJob-%j.err
 
 # --- End of Slurm commands ----
+# Run the Python script, restricting which GPU to use using CUDA_VISIBLE_DEVICES
 
-python baseline_model.py
+python nutri_pred.py
