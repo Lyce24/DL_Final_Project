@@ -7,6 +7,8 @@ import torchvision.models as models
 # Evaluate the model
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 import numpy as np
+from torchvision.models import inception_v3, Inception_V3_Weights
+
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -34,18 +36,15 @@ train_loader, val_loader, test_loader = prepare_dataloaders(image_path, mass_inp
 
 # Define the InceptionV2 backbone
 class InceptionV2Backbone(nn.Module):
-    def __init__(self, pretrained=True):
-        super(InceptionV2Backbone, self).__init__()
-        # Use InceptionV3 as a proxy for InceptionV2
-        self.backbone = models.inception_v3(pretrained=pretrained, aux_logits=True)
+    def __init__(self, weights=Inception_V3_Weights.DEFAULT):
+        """
+        Args:
+            weights: Pre-trained weights to use for the InceptionV3 model. Use `None` for no pre-training.
+        """
+        super().__init__()
+        # Load the InceptionV3 model with specified weights
+        self.backbone = inception_v3(weights=weights, aux_logits=True)
         self.backbone.fc = nn.Identity()  # Remove the classification head
-
-    def forward(self, x):
-        # When aux_logits=True, the output is a tuple: (main_output, aux_output)
-        x = self.backbone(x)
-        if isinstance(x, tuple):  # Extract the main output
-            x = x[0]
-        return x
     
 class NutritionModel(nn.Module):
     def __init__(self, num_tasks=3):
@@ -212,7 +211,7 @@ def test_model(model, dataloader):
     return results
 
 # Load the best model
-model.load_state_dict(torch.load("./baseline_inv2.pth"))
+model.load_state_dict(torch.load("./baseline_inv2_updated.pth"))
 model.to(device)
 
 print("Evaluating the model...")
