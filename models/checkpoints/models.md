@@ -135,3 +135,51 @@ Fat: 5.55 (43.42%)
 Carb: 9.92 (51.42%)
 Protein: 7.80 (46.43%)
 ```
+
+```
+Conv_LSTM:
+torch.Size([16, 3, 224, 224])
+torch.Size([16, 5])
+torch.Size([16, 5])
+Number of trainable parameters: 58580485
+Epoch 1/30 Train Loss: 0.0513 Validation Loss: 0.0376
+Model saved with loss:  0.03764760995713564
+Epoch 2/30 Train Loss: 0.0346 Validation Loss: 0.0370
+Model saved with loss:  0.03702708792227965
+Epoch 3/30 Train Loss: 0.0341 Validation Loss: 0.0353
+Model saved with loss:  0.03531481354282452
+Epoch 4/30 Train Loss: 0.0336 Validation Loss: 0.0348
+Model saved with loss:  0.03482547259101501
+Epoch 5/30 Train Loss: 0.0341 Validation Loss: 0.0374
+Epoch 6/30 Train Loss: 0.0343 Validation Loss: 0.0366
+Epoch 7/30 Train Loss: 0.0340 Validation Loss: 0.0366
+Epoch 8/30 Train Loss: 0.0339 Validation Loss: 0.0364
+Epoch 9/30 Train Loss: 0.0339 Validation Loss: 0.0347
+Model saved with loss:  0.03465667839806814
+Epoch 10/30 Train Loss: 0.0330 Validation Loss: 0.0345
+Model saved with loss:  0.03451278504843895
+Epoch 11/30 Train Loss: 0.0346 Validation Loss: 0.0382
+Epoch 12/30 Train Loss: 0.0351 Validation Loss: 0.0369
+Epoch 13/30 Train Loss: 0.0336 Validation Loss: 0.0360
+Epoch 14/30 Train Loss: 0.0337 Validation Loss: 0.0362
+Epoch 15/30 Train Loss: 0.0330 Validation Loss: 0.0322
+Model saved with loss:  0.03224939308487452
+Epoch 16/30 Train Loss: 0.0330 Validation Loss: 0.0325
+Epoch 17/30 Train Loss: 0.0330 Validation Loss: 0.0337
+Epoch 18/30 Train Loss: 0.0329 Validation Loss: 0.0340
+Epoch 19/30 Train Loss: 0.0325 Validation Loss: 0.0324
+Epoch 20/30 Train Loss: 0.0334 Validation Loss: 0.0325
+Epoch 21/30 Train Loss: 0.0334 Validation Loss: 0.0342
+Epoch 22/30 Train Loss: 0.0324 Validation Loss: 0.0324
+Epoch 23/30 Train Loss: 0.0324 Validation Loss: 0.0335
+Epoch 24/30 Train Loss: 0.0323 Validation Loss: 0.0313
+Model saved with loss:  0.03130263548630934
+Epoch 25/30 Train Loss: 0.0318 Validation Loss: 0.0302
+Model saved with loss:  0.03020631092099043
+Epoch 26/30 Train Loss: 0.0314 Validation Loss: 0.0284
+Model saved with loss:  0.028425742943699542
+Epoch 27/30 Train Loss: 0.0317 Validation Loss: 0.0305
+Epoch 28/30 Train Loss: 0.0311 Validation Loss: 0.0337
+Epoch 29/30 Train Loss: 0.0309 Validation Loss: 0.0384
+Epoch 30/30 Train Loss: 0.0322 Validation Loss: 0.0311
+```
