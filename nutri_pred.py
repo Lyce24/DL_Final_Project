@@ -9,11 +9,10 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 import numpy as np
 from torchvision.models import inception_v3, Inception_V3_Weights
 
-
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
+print('\nPreprocess the Data...')
 transform = transforms.Compose([
     transforms.Resize((299, 299)),  # Resize to Inception-compatible dimensions
     transforms.ToTensor(),
@@ -32,7 +31,7 @@ mass_inputs = os.path.join(prepared_path, 'mass_inputs.csv')
 
 # If mass is true, then mass is passed as an input to the model
 train_loader, val_loader, test_loader = prepare_dataloaders(image_path, mass_inputs, train_labels, val_labels, test_labels, transform, batch_size = 32, shuffle = True, mass = True)
-
+print('Data Preprocessing Done')
 
 # Define the InceptionV2 backbone
 class InceptionV2Backbone(nn.Module):
@@ -45,6 +44,11 @@ class InceptionV2Backbone(nn.Module):
         # Load the InceptionV3 model with specified weights
         self.backbone = inception_v3(weights=weights, aux_logits=True)
         self.backbone.fc = nn.Identity()  # Remove the classification head
+        
+    def forward(self, x):
+        # When aux_logits=True, the output is a tuple: (main_output, aux_output)
+        x = self.backbone(x)
+        return x[0] if isinstance(x, tuple) else x
     
 class NutritionModel(nn.Module):
     def __init__(self, num_tasks=3):
@@ -88,7 +92,8 @@ class NutritionModel(nn.Module):
         # Pass through task-specific heads
         outputs = [task_head(combined_features) for task_head in self.task_heads]
         return torch.cat(outputs, dim=1)
-    
+
+print('\nModel Defined')
     
 def train_model(
     model, 
@@ -101,6 +106,8 @@ def train_model(
 ):
     model = model.to(device)  # Move model to device
     current_best_loss = float('inf')
+
+    print("Starting training...")
 
     for epoch in range(num_epochs):
         # Training phase
@@ -154,7 +161,7 @@ loss_fn = nn.MSELoss()  # Mean Squared Error (MSE) loss
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
 
 # Train the model
-train_model(model, train_loader, val_loader, loss_fn, optimizer, num_epochs=50, save_path="./baseline_inv2.pth")
+train_model(model, train_loader, val_loader, loss_fn, optimizer, num_epochs=50, save_path="./models/baseline_v3.pth")
 
 
 def test_model(model, dataloader):
@@ -211,7 +218,7 @@ def test_model(model, dataloader):
     return results
 
 # Load the best model
-model.load_state_dict(torch.load("./baseline_inv2_updated.pth"))
+model.load_state_dict(torch.load("./models/baseline_v3.pth"))
 model.to(device)
 
 print("Evaluating the model...")

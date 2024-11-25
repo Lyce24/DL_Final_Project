@@ -56,8 +56,6 @@ coverage/
 # Ignore Hydra Error and Output Files
 *.err
 *.out
-./preprocess.ipynb
-.preprocess.ipynb
-preprocess.ipynb
 
+worktable.ipynb
 *.pth
