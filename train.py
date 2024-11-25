@@ -49,15 +49,15 @@ def validate_model(model, val_loader, loss_fn=nn.MSELoss()):
         
     return val_loss / len(val_loader), losses
 
-def train(model, train_loader, val_loader, epochs, checkpoint_name, learning_rate=1e-5):
+def train(model_name, train_loader, val_loader, epochs, checkpoint_name, learning_rate=1e-5):
     # print the model
     tasks = ["calories", "mass", "fat", "carb", "protein"]
     
-    if model == 'inceptionv3':
+    if model_name == 'inceptionv3':
         model = InceptionV3Model(tasks).to(device)
-    elif model == 'convlstm':
+    elif model_name == 'convlstm':
         model = ConvLSTM(tasks).to(device)
-    elif model == 'vit':
+    elif model_name == 'vit':
         model = ViTModel(tasks).to(device)
     
     mse_loss = nn.MSELoss()
@@ -65,6 +65,7 @@ def train(model, train_loader, val_loader, epochs, checkpoint_name, learning_rat
     
     # Print the number of trainable parameters
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Model: {model_name} (Learning rate: {learning_rate}, Epochs: {epochs})")
     print(f"Number of trainable parameters: {num_params}")
 
     best_val_loss = float('inf')
@@ -96,7 +97,7 @@ def train(model, train_loader, val_loader, epochs, checkpoint_name, learning_rat
             if checkpoint_name is not None:
                 torch.save(model.state_dict(), os.path.join(model_checkpoints, f"{checkpoint_name}.pth"))
                 print("Model saved")
-            torch.save(model.state_dict(), os.path.join(model_checkpoints, f"{model}_best.pth"))
+            torch.save(model.state_dict(), os.path.join(model_checkpoints, f"{model_name}_best.pth"))
             print("Model saved")
 
 if __name__ == '__main__':

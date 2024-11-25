@@ -33,4 +33,4 @@
 # --- End of Slurm commands ----
 # Run the Python script, restricting which GPU to use using CUDA_VISIBLE_DEVICES
 
-python train.py
+python train.py --model vit
