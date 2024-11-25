@@ -70,7 +70,7 @@ def prepare_test_loader(df_test, image_path, labels, img_dim, batch_size = 16):
     labels = labels
     test_dataset = NutritionDataset(df_test, image_path, labels, transform=test_transforms)
 
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
     return test_loader
 

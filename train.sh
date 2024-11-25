@@ -20,7 +20,7 @@
 #SBATCH --gres=gpu:1
 
 # Request an hour of runtime. Default runtime on the compute partition is 1 hour.
-#SBATCH --time=6:00:00
+#SBATCH --time=12:00:00
 #SBATCH --mem=6G                       # Request 6GB of memory
 
 # Specify a job name:
@@ -32,5 +32,11 @@
 
 # --- End of Slurm commands ----
 # Run the Python script, restricting which GPU to use using CUDA_VISIBLE_DEVICES
+    # parser.add_argument('--model', type=str, default='inceptionv3', help='Model to train (inceptionv3, convlstm, vit)')
+    # parser.add_argument('--log_min_max', type=bool, default=True, help='Use log min max normalization')
+    # parser.add_argument('--batch_size', type=int, default=16, help='Batch size')
+    # parser.add_argument('--epochs', type=int, default=50, help='Number of epochs')
+    # parser.add_argument('--lr', type=float, default=1e-5, help='Learning rate')
+    # parser.add_argument('--save_name', type=str, required=False, help='Name of the model checkpoint to save')
 
-python train.py --model vit
+python train.py --model vit --log_min_max False --batch_size 16 --epochs 50 --save_name vit_log
