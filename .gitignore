@@ -58,4 +58,9 @@ coverage/
 *.out
 
 worktable.ipynb
+worktable.py
 *.pth
+checkpoint/
+runs/
+
+output/
