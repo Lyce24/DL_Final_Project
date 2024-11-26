@@ -32,11 +32,12 @@
 
 # --- End of Slurm commands ----
 # Run the Python script, restricting which GPU to use using CUDA_VISIBLE_DEVICES
-    # parser.add_argument('--model', type=str, default='inceptionv3', help='Model to train (inceptionv3, convlstm, vit)')
-    # parser.add_argument('--log_min_max', type=bool, default=True, help='Use log min max normalization')
-    # parser.add_argument('--batch_size', type=int, default=16, help='Batch size')
-    # parser.add_argument('--epochs', type=int, default=50, help='Number of epochs')
-    # parser.add_argument('--lr', type=float, default=1e-5, help='Learning rate')
-    # parser.add_argument('--save_name', type=str, required=False, help='Name of the model checkpoint to save')
+# parser.add_argument('--model', type=str, default='inceptionv3', help='Model to train (inceptionv3, convlstm, vit)')
+# parser.add_argument('--pretrained', type=bool, default=True, help='Use pre-trained weights')
+# parser.add_argument('--log_min_max', type=bool, default=True, help='Use log min max normalization')
+# parser.add_argument('--batch_size', type=int, default=16, help='Batch size')
+# parser.add_argument('--epochs', type=int, default=50, help='Number of epochs')
+# parser.add_argument('--lr', type=float, default=1e-5, help='Learning rate')
+# parser.add_argument('--save_name', type=str, required=False, help='Name of the model checkpoint to save')
 
-python train.py --model vit --log_min_max False --batch_size 16 --epochs 50 --save_name vit_log
+python train.py --model inceptionv3 --pretrained False --log_min_max False --batch_size 16 --epochs 50 --save_name inceptionv3_log_regular

@@ -74,14 +74,17 @@ class ConvLSTM(nn.Module):
     
 ############################################################################################################
 class InceptionV3(nn.Module):
-    def __init__(self, weights=Inception_V3_Weights.DEFAULT):
+    def __init__(self, pretrained = True):
         """
         Args:
             weights: Pre-trained weights to use for the InceptionV3 model. Use `None` for no pre-training.
         """
         super().__init__()
         # Load the InceptionV3 model with specified weights
-        self.backbone = inception_v3(weights=weights, aux_logits=True)
+        if pretrained:
+            self.backbone = inception_v3(weights=Inception_V3_Weights.DEFAULT, aux_logits=True)
+        else:
+            self.backbone = inception_v3(weights=None, aux_logits=True)            
         self.backbone.fc = nn.Identity()  # Remove the classification head
         
     def forward(self, x):
@@ -90,13 +93,13 @@ class InceptionV3(nn.Module):
         return x[0] if isinstance(x, tuple) else x
 
 class InceptionV3Model(nn.Module):
-    def __init__(self, tasks : List[str]):
+    def __init__(self, tasks : List[str], pretrained = True):
         """
         Args:
             num_tasks: Number of tasks (calories, macronutrients, and mass).
         """
         super(InceptionV3Model, self).__init__()
-        self.backbone = InceptionV3()  # Use the corrected backbone
+        self.backbone = InceptionV3(pretrained)  # Use the corrected backbone
         
         # Shared image feature layers
         self.shared_fc1 = nn.Linear(2048, 4096) # Use 2048 as input size as InceptionV3 has 2048 output features
@@ -124,14 +127,17 @@ class InceptionV3Model(nn.Module):
     
 ############################################################################################################
 class ViTBackbone(nn.Module):
-    def __init__(self, weights=ViT_B_16_Weights.DEFAULT):
+    def __init__(self, pretrained = True):
         """
         Args:
             weights: Pre-trained weights to use for the ViT model. Use `None` for no pre-training.
         """
         super().__init__()
         # Load the Vision Transformer with pretrained weights
-        self.backbone = vit_b_16(weights=weights)
+        if pretrained:
+            self.backbone = vit_b_16(weights=ViT_B_16_Weights.DEFAULT)
+        else:
+            self.backbone = vit_b_16(weights=None)
         self.backbone.heads = nn.Identity()  # Remove the classification head
 
     def forward(self, x):
@@ -140,11 +146,11 @@ class ViTBackbone(nn.Module):
         return x
 
 class ViTModel(nn.Module):
-    def __init__(self, tasks : List[str]):
+    def __init__(self, tasks : List[str], pretrained = True):
         super(ViTModel, self).__init__()
         
         # Use the ViT backbone
-        self.backbone = ViTBackbone()
+        self.backbone = ViTBackbone(pretrained)
 
         # Custom fully connected layers for regression
         self.fc1 = nn.Sequential(

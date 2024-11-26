@@ -54,16 +54,16 @@ def validate_model(model, val_loader, loss_fn=nn.MSELoss()):
         
     return val_loss / len(val_loader), losses
 
-def train(model_name, train_loader, val_loader, epochs, checkpoint_name, learning_rate=1e-5):
+def train(model_name, train_loader, val_loader, pretrained, epochs, checkpoint_name, learning_rate=1e-5):
     # print the model
     tasks = ["calories", "mass", "fat", "carb", "protein"]
     
     if model_name == 'inceptionv3':
         model = InceptionV3Model(tasks).to(device)
     elif model_name == 'convlstm':
-        model = ConvLSTM(tasks).to(device)
+        model = ConvLSTM(tasks, pretrained).to(device)
     elif model_name == 'vit':
-        model = ViTModel(tasks).to(device)
+        model = ViTModel(tasks, pretrained).to(device)
     
     mse_loss = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -124,6 +124,7 @@ if __name__ == '__main__':
     # parse arguments
     parser = argparse.ArgumentParser(description='Train a model')
     parser.add_argument('--model', type=str, default='inceptionv3', help='Model to train (inceptionv3, convlstm, vit)')
+    parser.add_argument('--pretrained', type=bool, default=True, help='Use pre-trained weights')
     parser.add_argument('--log_min_max', type=bool, default=True, help='Use log min max normalization')
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size')
     parser.add_argument('--epochs', type=int, default=50, help='Number of epochs')
@@ -133,4 +134,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     train_loader, val_loader = perpare_data(args.model, args.batch_size, args.log_min_max)
-    train(args.model, train_loader, val_loader, args.epochs, args.save_name, args.lr)
+    train(args.model, train_loader, val_loader, args.pretrained, args.epochs, args.save_name, args.lr)
