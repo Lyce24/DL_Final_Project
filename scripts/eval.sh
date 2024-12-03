@@ -8,4 +8,4 @@
 
 
 # python eval.py --model_backbone inceptionv3 --model_name inceptionv3_lmm_da_v2 --log_min_max True --s inceptionv3_lmm_da_v2
-python ingr_eval.py --model_backbone resnet --model_name resnet_ingr_log_da_v3_32_120_30_0.0 --log_min_max False
+python ingr_eval.py --model_backbone convnx --model_name convnx_ingr_log_da_v3_16_100 --log_min_max False

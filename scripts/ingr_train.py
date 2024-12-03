@@ -9,9 +9,10 @@ sys.path.append('./')
 import torch
 import pandas as pd
 from utils.preprocess import load_ingr_data
-from models.models import ViTIngrModel, CLIngrModel, CLIngrV2, ConvNextIngrModel
+from models.models import ViTIngrModel, CLIngrModel, ConvNextIngrModel, ResNetIngrModel
 import torch.nn as nn
 import matplotlib.pyplot as plt
+import time
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -101,10 +102,10 @@ def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epoc
         model = ViTIngrModel(num_ingr, pretrained).to(device)
     elif model_backbone == 'convlstm':
         model = CLIngrModel(num_ingr).to(device)
-    elif model_backbone == 'clv2':
-        model = CLIngrV2(num_ingr).to(device)
     elif model_backbone == 'convnx':
         model = ConvNextIngrModel(num_ingr, pretrained).to(device)
+    elif model_backbone == 'resnet':
+        model = ResNetIngrModel(num_ingr, pretrained).to(device)
     else:
         raise ValueError("Invalid model backbone")
     
@@ -120,9 +121,11 @@ def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epoc
     train_losses = []
     val_losses = []
     
+    training_start_time = time.time()
     for epoch in range(epochs):
         model.train()
         train_loss = 0.0
+        start_time = time.time()
         for batch_idx, (inputs, targets) in enumerate(train_loader):
             targets = [targets[0].to(device), targets[1].to(device)]
             inputs = inputs.to(device)
@@ -133,7 +136,7 @@ def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epoc
             # Calculate loss for all tasks
             loss = ingredient_loss(outputs, targets[1], targets[0], model_params=model.parameters(), l2_lambda=l2)
             
-            print(f"Epoch {epoch+1}/{epochs}, Batch {batch_idx+1}/{len(train_loader)}, Loss: {loss.item()}")
+            # print(f"Epoch {epoch+1}/{epochs}, Batch {batch_idx+1}/{len(train_loader)}, Loss: {loss.item()}")
             
             # Backward pass and optimization
             loss.backward()
@@ -142,7 +145,10 @@ def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epoc
             train_loss += loss.item()
     
         val_loss = validate_ingr_model(model, val_loader, l2)
-        print(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss/len(train_loader)}, Val Loss: {val_loss}")
+        end_time = time.time()
+        epoch_time = (end_time - start_time) / 60
+        
+        print(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss/len(train_loader)}, Val Loss: {val_loss}, Time Used: {epoch_time:.2f}")
             
         train_losses.append(train_loss / len(train_loader))
         val_losses.append(val_loss)
@@ -164,12 +170,17 @@ def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epoc
                 print(f"Early stopping at epoch {epoch+1}")
                 break
             
+    training_end_time = time.time()
     # Plot the training and validation losses
     plt.plot(train_losses, label='Training loss')
     plt.plot(val_losses, label='Validation loss')
     plt.legend()
     # save the plot
     plt.savefig(f'./plots/{checkpoint_name}_loss.png')
+    
+    print(f"Total training time: {training_end_time - training_start_time:.2f} seconds, Best Validation Loss: {best_val_loss}")
+    
+
 
 if __name__ == '__main__':
     import argparse
