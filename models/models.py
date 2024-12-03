@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import List
-from torchvision.models import inception_v3, Inception_V3_Weights, vit_b_16, ViT_B_16_Weights, efficientnet_v2_m, EfficientNet_V2_M_Weights, resnet50, ResNet50_Weights
+from torchvision.models import inception_v3, Inception_V3_Weights, vit_b_16, ViT_B_16_Weights, efficientnet_v2_m, EfficientNet_V2_M_Weights, convnext_small, ConvNeXt_Small_Weights, resnet50, ResNet50_Weights
 
 ############################################################################################################
 class ConvLSTM(nn.Module):
@@ -312,19 +312,20 @@ class EfficientNetBackbone(nn.Module):
         # Forward pass through EfficientNet backbone
         return self.backbone(x)
     
-class ResNet50Backbone(nn.Module):
+class ConvNextBackbone(nn.Module):
     def __init__(self, pretrained=True):
         super().__init__()
-        # Load ResNet50 with pre-trained weights
+        # Load ConvNeXt with pre-trained weights
         if pretrained:
-            self.backbone = resnet50(weights=ResNet50_Weights.DEFAULT)
+            self.backbone = convnext_small(weights=ConvNeXt_Small_Weights.IMAGENET1K_V1)
         else:
-            self.backbone = resnet50(weights=None) # Input size: 224x224
-        self.backbone.fc = nn.Identity()  # Remove the classification head
+            self.backbone = convnext_small(weights=None) # input size: 3x224x224
+        self.backbone.classifier = nn.Identity()  # Remove the classification head
 
     def forward(self, x):
-        # Forward pass through ResNet50 backbone
+        # Forward pass through ConvNeXt backbone
         return self.backbone(x)
+    
     
 ############################################################################################################
 '''
@@ -522,16 +523,86 @@ class ViTIngrModel(nn.Module):
         outputs = self.mass_prediction(x)
         return outputs
     
-class ResNetIngrModel(nn.Module):
+class ConvNextIngrModel(nn.Module):
     def __init__(self, num_ingr = 199, pretrained = False, hidden_dim = 512, dropout_rate = 0.3):
-        super(ResNetIngrModel, self).__init__()
+        super(ConvNextIngrModel, self).__init__()
         
         # Use the ResNet50 backbone
-        self.backbone = ResNet50Backbone(pretrained)
+        self.backbone = ConvNextBackbone(pretrained)
         
         # Custom fully connected layers for regression
         self.fc_layers = nn.Sequential(
-            nn.Linear(2048, 1024),
+            nn.Linear(768, hidden_dim),
+            nn.BatchNorm1d(hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate),
+            
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.BatchNorm1d(hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate),
+            
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.BatchNorm1d(hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate)
+        )
+        
+        # Task-specific regression head
+        self.mass_prediction = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate),
+            nn.Linear(hidden_dim, num_ingr),
+            nn.ReLU() # ReLU activation for mass prediction (non-negative)
+        )
+        
+    def forward(self, x):
+        # Forward pass through ViT backbone
+        x = self.backbone(x)  # Output: [batch_size,768, 1, 1]
+        
+        x = x.view(x.size(0), -1)  # Flatten the output
+        
+        # Pass through fully connected layers
+        x = self.fc_layers(x)
+        
+        # Task-specific head
+        # outputs = [head(x) for head in self.task_heads]
+        outputs = self.mass_prediction(x)
+        return outputs
+
+############################################################################################################
+'''
+Backup Models
+'''
+class ResNetBackbone(nn.Module):
+    def __init__(self, pretrained = True):
+        super().__init__()
+        # Load ResNet50 with pre-trained weights
+        if pretrained:
+            self.backbone = resnet50(weights=ResNet50_Weights.DEFAULT)
+        else:
+            self.backbone = resnet50(weights=None)
+        self.backbone.fc = nn.Identity()  # Remove the classification head
+
+    def forward(self, x):
+        # Forward pass through ResNet50 backbone
+        return self.backbone(x)
+    
+class ResNetIngrModel(nn.Module):
+    def __init__(self, num_ingr: int = 199, pretrained = False, hidden_dim: int = 512, dropout_rate: float = 0.3):
+        """
+        Args:
+            num_classes: Number of classes for the final classification layer.
+            weights: Pre-trained weights to use for the ViT model. Use `None` for no pre-training.
+        """
+        super().__init__()
+        # Load the Vision Transformer backbone
+        self.backbone = ResNetBackbone(pretrained)
+        
+        # Custom fully connected layers for regression
+        self.fc_layers = nn.Sequential(
+            nn.Linear(2048, 1024), # 
             nn.BatchNorm1d(1024),
             nn.ReLU(),
             nn.Dropout(dropout_rate),
@@ -558,13 +629,12 @@ class ResNetIngrModel(nn.Module):
         
     def forward(self, x):
         # Forward pass through ViT backbone
-        x = self.backbone(x)  # Output: [batch_size, 768]
-        
+        x = self.backbone(x)
+                
         # Pass through fully connected layers
         x = self.fc_layers(x)
         
         # Task-specific head
-        # outputs = [head(x) for head in self.task_heads]
         outputs = self.mass_prediction(x)
         return outputs
 
@@ -619,10 +689,17 @@ if __name__ == "__main__":
     model = ViTIngrModel(num_ingr)
     output = model(x)
     print(f"ViT Ingr model output shape: {output[0].shape}") # Expected output shape: [16, 199]
+    vit_backbone = ViTBackbone()
+    output = vit_backbone(x)
+    print(f"ViT Backbone output shape: {output.shape}") # Expected output shape: [16, 768]
     
-    print("\nTesting the ResNet model")
-    model = ResNetIngrModel(num_ingr)
+    convnx_backbone = ConvNextBackbone()
+    output = convnx_backbone(x)
+    print(f"ConvNext Backbone output shape: {output.shape}") # Expected output shape: [16, 2048]
+    
+    print("\nTesting the ConvNext model")
+    model = ConvNextIngrModel(num_ingr)
     output = model(x)
-    print(f"ResNet Ingr model output shape: {output[0].shape}") # Expected output shape: [16, 199]
-        
+    print(f"ConvNext Ingr model output shape: {output.shape}") # Expected output shape: [16, 199]
+    
     print("All tests passed!")

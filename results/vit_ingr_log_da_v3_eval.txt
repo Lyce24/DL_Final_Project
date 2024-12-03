@@ -1,0 +1,14 @@
+Evaluation results for model: vit saved as vit_ingr_log_da_v3
+Regression Loss (WMSE): 0.20310407327978233
+Classification Loss: 0.7717400287327013
+Classification Accuracy: 0.8490148108965883
+Precision: 0.1676025506804987
+Recall: 0.8194509073987901
+F1-Score: 0.27828697850821743
+
+Overall MAE: 44.507584737312065
+calories: 120.1419438611775
+mass: 74.7530451150317
+fat: 7.18136120500695
+carbs: 10.437166102396619
+protein: 10.024407402947624

@@ -1,0 +1,14 @@
+Evaluation results for model: convnx saved as convnx_ingr_log_da_v3_32_120_30_0.0
+Regression Loss (WMSE): 0.16670713299199155
+Classification Loss: 0.9352583822451139
+Classification Accuracy: 0.58550978577096
+Precision: 0.06753187957443597
+Recall: 0.8329455560725919
+F1-Score: 0.1249345663932996
+
+Overall MAE: 63.18055103548059
+calories: 165.7503021826214
+mass: 114.62169471069386
+fat: 9.234352854232695
+carbs: 13.332007178775376
+protein: 12.964398251079652
