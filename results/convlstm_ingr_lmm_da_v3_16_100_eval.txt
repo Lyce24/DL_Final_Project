@@ -1,0 +1,14 @@
+Evaluation results for model: convlstm saved as convlstm_ingr_lmm_da_v3_16_100
+Regression Loss (WMSE): 0.008052135131468898
+Classification Loss: 0.8966072484066612
+Classification Accuracy: 0.6487866966411002
+Precision: 0.0843562287803604
+Recall: 0.90181479758027
+F1-Score: 0.15428093778609242
+
+Overall MAE: 41.68680208826717
+calories: 118.12500318138049
+mass: 59.88569593312668
+fat: 8.416811659315135
+carbs: 11.456136079513067
+protein: 10.55036358800037

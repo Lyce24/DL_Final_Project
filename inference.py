@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import filedialog
 from PIL import Image, ImageTk
 import torch
-from models.models import CLIngrModel, ConvNextIngrModel, ResNetIngrModel
+from models.models import CLIngrModel, ConvLSTM
 from torchvision import transforms
 import os
 import pandas as pd

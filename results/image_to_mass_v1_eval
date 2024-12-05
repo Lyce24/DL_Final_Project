@@ -1,0 +1,14 @@
+Evaluation results for model: resnet saved as image_to_mass_v1
+Regression Loss (WMSE): 0.18922560152254606
+Classification Loss: 1.2777388472306102
+Classification Accuracy: 0.03552300978577096
+Precision: 0.03552300978577096
+Recall: 1.0
+F1-Score: 0.06860882752015325
+
+Overall MAE: 46.95201006677416
+calories: 115.14301623792383
+mass: 88.58375523396228
+fat: 7.618653372435242
+carbs: 11.292796094175428
+protein: 12.121829395374027

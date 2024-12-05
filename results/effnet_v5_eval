@@ -1,0 +1,14 @@
+Evaluation results for model: effnet saved as effnet_v5
+Regression Loss (WMSE): 0.19895359403208682
+Classification Loss: 0.8093837154539008
+Classification Accuracy: 0.7890273737106586
+Precision: 0.1304317548746518
+Recall: 0.8715681712424383
+F1-Score: 0.22690653582894177
+
+Overall MAE: 36.615405970548494
+calories: 97.51861115508392
+mass: 61.11102461971735
+fat: 6.205595555113383
+carbs: 9.774728454166143
+protein: 8.467070068661712

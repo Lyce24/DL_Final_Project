@@ -1,0 +1,14 @@
+Evaluation results for model: resnetv2 saved as resnetv2_ingr_log_da_v4_16_100
+Regression Loss (WMSE): 0.2072564606603823
+Classification Loss: 0.7470510915706032
+Classification Accuracy: 0.8878934144406242
+Precision: 0.20539234388910085
+Recall: 0.7515123313168915
+F1-Score: 0.32261286456252497
+
+Overall MAE: 40.03749934721335
+calories: 104.57815930775239
+mass: 71.68424894621498
+fat: 5.940076397273935
+carbs: 10.237749278811838
+protein: 7.74726280601362

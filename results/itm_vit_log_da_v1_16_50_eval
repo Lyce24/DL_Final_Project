@@ -1,0 +1,14 @@
+Evaluation results for model: itm saved as itm_vit_log_da_v1_16_50
+Regression Loss (WMSE): 0.18948142465792203
+Classification Loss: 1.2777388472306102
+Classification Accuracy: 0.03552300978577096
+Precision: 0.03552300978577096
+Recall: 1.0
+F1-Score: 0.06860882752015325
+
+Overall MAE: 42.20093324205999
+calories: 110.01765343072475
+mass: 69.51698645008237
+fat: 7.865593544367945
+carbs: 12.08883039376159
+protein: 11.515602391363291

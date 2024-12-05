@@ -64,3 +64,11 @@ checkpoint/
 runs/
 
 output/
+
+scripts/output/
+scripts/output/*
+
+models/test_models.py
+itm.py
+
+scripts/test*

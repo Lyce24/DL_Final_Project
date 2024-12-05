@@ -1,0 +1,14 @@
+Evaluation results for model: incept saved as inceptionv3_v5
+Regression Loss (WMSE): 0.2065876094918502
+Classification Loss: 0.788270282117944
+Classification Accuracy: 0.8227486114784448
+Precision: 0.14912424292028156
+Recall: 0.8478362028850628
+F1-Score: 0.2536368065706132
+
+Overall MAE: 43.284901762319215
+calories: 110.7783843489918
+mass: 79.29073826772601
+fat: 6.677582633004818
+carbs: 10.157724296138671
+protein: 9.52007926573487

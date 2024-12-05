@@ -1,0 +1,14 @@
+Evaluation results for model: baseline saved as baseline
+Regression Loss (WMSE): 0.19821888051534953
+Classification Loss: 0.7831423345365023
+Classification Accuracy: 0.8309475006612007
+Precision: 0.15478632478632479
+Recall: 0.842717543043276
+F1-Score: 0.26153512889017255
+
+Overall MAE: 49.30219017997431
+calories: 129.76603818403427
+mass: 88.30857565646109
+fat: 7.273349578202604
+carbs: 11.42357336043704
+protein: 9.739414120736404
