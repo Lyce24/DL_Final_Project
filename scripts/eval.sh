@@ -1,11 +1,15 @@
 #!/bin/bash
 
-# parser.add_argument('--model_backbone', type=str, required= True, help='Model to eval')
-# parser.add_argument('--ingr', type=str2bool, default=False, help='Use ingredient dataset')
-# parser.add_argument('--model_name', type=str, required=True, help='Name of the model checkpoint to save')
-# parser.add_argument('--log_min_max', type=str2bool, default=True, help='Used log min-max values')
-# parser.add_argument('--s', type=str, required=False, help='Name of the file to save the results')
+# Slurm commands
+#SBATCH --partition=gpus             # Use the GPU partition
+#SBATCH --gres=gpu:1                 # Request 3 GPUs
+#SBATCH --time=01:00:00              # Maximum runtime
+#SBATCH --mem=6G                     # Memory allocation
+#SBATCH -J Eval                      # Job name
+#SBATCH -o ./output/eval-%j.out  # Standard output
+#SBATCH -e ./output/eval-%j.err  # Standard error
 
 
-# python eval.py --model_backbone inceptionv3 --model_name inceptionv3_lmm_da_v2 --log_min_max True --s inceptionv3_lmm_da_v2
-python ingr_eval.py --model_backbone convnx --model_name convnx_ingr_log_da_v3_16_100 --log_min_max False
+# python dp_eval.py --model_backbone convlstm --model_name convlstm_lmm_da_v2 --log_min_max True
+python ingr_eval.py --model_backbone baseline --model_name baseline --log_min_max False
+# python test_eval.py --model_backbone resnet --model_name image_to_mass_no_pretrained_v1 --log_min_max False

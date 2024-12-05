@@ -9,7 +9,7 @@ sys.path.append('./')
 import numpy as np
 import torch
 import pandas as pd
-from models.models import ConvLSTM, InceptionV3Model, ViTModel
+from models.models import ConvLSTM, NutriPredModel
 from utils.preprocess import prepare_test_loader
 from torch import nn
 from sklearn.metrics import mean_squared_error
@@ -224,14 +224,13 @@ def test_model_mae(model, dataloader, log_min_max, device):
 ############################################################################################################
 
 def eval(model_backbone, save_name, test_loader, log_min_max, s, device):
-    if model_backbone == 'convlstm':
-        model = ConvLSTM(["calories", "mass", "fat", "carb", "protein"]).to(device)
-    elif model_backbone == 'vit':
-        model = ViTModel(["calories", "mass", "fat", "carb", "protein"]).to(device)
-    elif model_backbone == 'inceptionv3':
-        model = InceptionV3Model(["calories", "mass", "fat", "carb", "protein"]).to(device)
+    tasks = ["calories", "mass", "fat", "carb", "protein"]
+    pretrained = False
+    
+    if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
+        model = NutriPredModel(tasks, model_backbone, pretrained).to(device) if model_backbone != 'convlstm' else ConvLSTM(tasks).to(device)
     else:
-        raise ValueError(f"Invalid model name: {model_backbone}")
+        raise ValueError(f"Invalid model backbone {model_backbone}")
     
     # load model
     model_path = f'./models/checkpoints/{save_name}.pth'

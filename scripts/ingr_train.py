@@ -9,15 +9,14 @@ sys.path.append('./')
 import torch
 import pandas as pd
 from utils.preprocess import load_ingr_data
-from models.models import ViTIngrModel, CLIngrModel, ConvNextIngrModel, ResNetIngrModel
-import torch.nn as nn
+from models.models import CLIngrModel, IngrPredModel, BaselineModel, IngrPredV2
 import matplotlib.pyplot as plt
 import time
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def perpare_data(model_type, batch_size, log_min_max, da):
-    IMG_DIM = 299 if model_type == 'inceptionv3' else 224
+    IMG_DIM = 299 if model_type == 'incept' else 224
     dataset_path = '../data/nutrition5k_reconstructed/'
     prepared_path = './utils/data'
     image_path = os.path.join(dataset_path, 'images')
@@ -95,17 +94,12 @@ def validate_ingr_model(model, val_loader, l2):
     return avg_total_loss
 
 def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epochs, checkpoint_name, learning_rate, patience, l2):
-    # print the model
     num_ingr = 199
-    
-    if model_backbone == 'vit':
-        model = ViTIngrModel(num_ingr, pretrained).to(device)
-    elif model_backbone == 'convlstm':
-        model = CLIngrModel(num_ingr).to(device)
-    elif model_backbone == 'convnx':
-        model = ConvNextIngrModel(num_ingr, pretrained).to(device)
-    elif model_backbone == 'resnet':
-        model = ResNetIngrModel(num_ingr, pretrained).to(device)
+
+    if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
+        model = IngrPredV2(num_ingr, model_backbone, pretrained).to(device) if model_backbone != 'convlstm' else CLIngrModel(num_ingr).to(device)
+    elif model_backbone == 'baseline':
+        model = BaselineModel(num_ingr).to(device)
     else:
         raise ValueError("Invalid model backbone")
     
@@ -136,7 +130,7 @@ def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epoc
             # Calculate loss for all tasks
             loss = ingredient_loss(outputs, targets[1], targets[0], model_params=model.parameters(), l2_lambda=l2)
             
-            # print(f"Epoch {epoch+1}/{epochs}, Batch {batch_idx+1}/{len(train_loader)}, Loss: {loss.item()}")
+            print(f"Epoch {epoch+1}/{epochs}, Batch {batch_idx+1}/{len(train_loader)}, Loss: {loss.item()}")
             
             # Backward pass and optimization
             loss.backward()

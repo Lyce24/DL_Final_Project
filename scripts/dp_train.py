@@ -1,6 +1,7 @@
 # %%
 import os
 import sys
+import time
 
 # change the directory to the root of the project
 os.chdir('../')
@@ -9,14 +10,14 @@ sys.path.append('./')
 import torch
 import pandas as pd
 from utils.preprocess import load_data
-from models.models import ConvLSTM, InceptionV3Model, ViTModel, ENetModel
+from models.models import ConvLSTM, NutriPredModel
 import torch.nn as nn
 import matplotlib.pyplot as plt
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def perpare_data(model_type, batch_size, log_min_max, da):
-    IMG_DIM = 299 if model_type == 'inceptionv3' else 224
+    IMG_DIM = 299 if model_type == 'incept' else 224
     dataset_path = '../data/nutrition5k_reconstructed/'
     prepared_path = './utils/data'
     image_path = os.path.join(dataset_path, 'images')
@@ -80,16 +81,10 @@ def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epoc
     # print the model
     tasks = ["calories", "mass", "fat", "carb", "protein"]
     
-    if model_backbone == 'inceptionv3':
-        model = InceptionV3Model(tasks, pretrained).to(device)
-    elif model_backbone == 'convlstm':
-        model = ConvLSTM(tasks).to(device)
-    elif model_backbone == 'vit':
-        model = ViTModel(tasks, pretrained).to(device)
-    elif model_backbone == 'enet':
-        model = ENetModel(tasks, pretrained).to(device)
+    if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
+        model = NutriPredModel(tasks, model_backbone, pretrained).to(device) if model_backbone != 'convlstm' else ConvLSTM(tasks).to(device)
     else:
-        raise ValueError("Invalid model backbone")
+        raise ValueError(f"Invalid model backbone {model_backbone}")
     
     mse_loss = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -104,9 +99,12 @@ def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epoc
     train_losses = []
     val_losses = []
     
+    training_start_time = time.time()
     for epoch in range(epochs):
         model.train()
         train_loss = 0.0
+        start_time = time.time()
+
         for batch_idx, (inputs, targets) in enumerate(train_loader):
             targets = targets.to(device) 
             inputs = inputs.to(device)
@@ -125,10 +123,14 @@ def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epoc
             optimizer.step()
 
             train_loss += loss.item()
-    
+            
+        end_time = time.time()
+        epoch_time = (end_time - start_time) / 60
+
         val_loss, ind_loss = validate_model(model, val_loader, mse_loss)
         ind_loss_str = ", ".join([f"{key}: {val:.4f}" for key, val in ind_loss.items()])
-        print(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss/len(train_loader)}, Val Loss: {val_loss}, Ind Loss: {ind_loss_str}")
+        
+        print(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss/len(train_loader)}, Val Loss: {val_loss}, Ind Loss: {ind_loss_str}, Time Used: {epoch_time:.2f}")
              
         train_losses.append(train_loss / len(train_loader))
         val_losses.append(val_loss)
@@ -149,13 +151,17 @@ def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epoc
             if patience_counter >= patience:
                 print(f"Early stopping at epoch {epoch+1}")
                 break
-            
+    
+    training_end_time = time.time()
     # Plot the training and validation losses
     plt.plot(train_losses, label='Training loss')
     plt.plot(val_losses, label='Validation loss')
     plt.legend()
     # save the plot
     plt.savefig(f'./plots/{checkpoint_name}_loss.png')
+
+    print(f"Total training time: {training_end_time - training_start_time:.2f} seconds, Best Validation Loss: {best_val_loss}")
+
 
 if __name__ == '__main__':
     

@@ -9,7 +9,8 @@ sys.path.append('./')
 import numpy as np
 import torch
 import pandas as pd
-from models.models import ViTIngrModel, CLIngrModel, ConvNextIngrModel, ResNetIngrModel
+from models.models import CLIngrModel, IngrPredModel, BaselineModel
+from models.test_models import ImageToMassPredictor
 from utils.preprocess import prepare_test_loader, prepare_test_loader_ingr
 from torch import nn
 
@@ -45,8 +46,8 @@ for i in range(len(ingr_df)):
     protein = ingr_df.iloc[i]['protein(g)']
     ingr_dict[ingr] = (cal, fat, carb, protein)
 
-# Load the min-max values
-min_max_file = './utils/min_max_values.csv'
+# Load the min-max values of the nutritional facts
+min_max_file = './utils/min_max_values_ingr.csv'
 min_max_df = pd.read_csv(min_max_file)
 
 ### Load Nutrition Dataset ###
@@ -98,7 +99,7 @@ def perpare_data(model_backbone, batch_size, log_min_max):
     
     dataset_id_path = './utils/data/test_labels_ingr_id.csv'
     if log_min_max:
-        raise NotImplementedError("Log min-max values not implemented for ingredient dataset")
+        dataset_path = './utils/data/test_labels_ingr_lmm.csv'
     else:
         dataset_path = './utils/data/test_labels_ingr_log.csv'
     test_df = pd.read_csv(dataset_path)
@@ -137,7 +138,7 @@ def ingredient_loss(outputs, targets, mask, alpha=0.9, l2_lambda=0.001, model_pa
     return total_loss
 
 
-def test_model_ingr(model, dataloader, device, log_min_max):
+def test_model_ingr(model, dataloader, device):
     """    
     Args:
         model (torch.nn.Module): Trained model to evaluate.
@@ -206,9 +207,7 @@ def test_model_ingr(model, dataloader, device, log_min_max):
 '''
 Test MAE performance and Specific MAE for each task
 For Ingredient dataset, we also calculate classification accuracy
-'''
-
-    
+''' 
 def test_model_ingr_mae(model, dataloader, log_min_max, device):
     model.eval()  # Set the model to evaluation mode
     
@@ -217,6 +216,16 @@ def test_model_ingr_mae(model, dataloader, log_min_max, device):
     task_counts = {task: 0 for task in tasks}
     total_absolute_error = 0.0
     total_count = 0
+    
+    def lmm_scaling(x, mass):
+        # x is the ingr name, mass is the predicted mass of the ingredient
+        min_val = min_max_df[min_max_df['ingr'] == x]['min'].values[0]
+        max_val = min_max_df[min_max_df['ingr'] == x]['max'].values[0]
+        
+        reverse_min_max_scaling = mass * (max_val - min_val) + min_val
+        reverse_log_scaling = np.exp(reverse_min_max_scaling) - 1
+        
+        return reverse_log_scaling
         
     def calculate_nutritional_facts(outputs, log_min_max, ingr_dict, ingr_index):
         outputs = outputs.cpu().numpy() # outputs.shape = (batch_size, 199)
@@ -238,9 +247,13 @@ def test_model_ingr_mae(model, dataloader, log_min_max, device):
             sample_protein = 0
             
             for ingr_idx in idx:
-                mass = outputs[batch_idx][ingr_idx]
-                mass = np.exp(mass) - 1
                 ingr_name = ingr_index[ingr_idx]
+                mass = outputs[batch_idx][ingr_idx]
+                if log_min_max:
+                    mass = lmm_scaling(ingr_name, mass)
+                else:
+                    mass = np.exp(mass) - 1
+                
                 cal, fat, carb, protein = ingr_dict[ingr_name]
                 
                 sample_calories += mass * cal
@@ -304,18 +317,16 @@ def test_model_ingr_mae(model, dataloader, log_min_max, device):
     
 
 ############################################################################################################
-
 def eval(model_backbone, save_name, test_loader, log_min_max, s, device):
-    if model_backbone == 'vit':
-        model = ViTIngrModel(199).to(device)
-    elif model_backbone == 'convlstm':
-        model = CLIngrModel(199).to(device)
-    elif model_backbone == 'convnx':
-        model = ConvNextIngrModel(199).to(device)
-    elif model_backbone == 'resnet':
-        model = ResNetIngrModel(199).to(device)
+    num_ingr = 199
+    pretrained = False
+    
+    if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
+        model = IngrPredModel(num_ingr, model_backbone, pretrained).to(device) if model_backbone != 'convlstm' else CLIngrModel(num_ingr).to(device)
+    elif model_backbone == 'baseline':
+        model = BaselineModel(num_ingr).to(device)
     else:
-        raise ValueError(f"Invalid model name: {model_backbone}")
+        raise ValueError("Invalid model backbone")
     
     # load model
     model_path = f'./models/checkpoints/{save_name}.pth'
@@ -324,7 +335,7 @@ def eval(model_backbone, save_name, test_loader, log_min_max, s, device):
     print(f"Evaluating model: {model_backbone} saved as {save_name}")
 
     # Evaluate the model
-    overall_classifcation_loss, overall_regression_loss, classification_accuracy, precision, recall, f1_score = test_model_ingr(model, test_loader, device, log_min_max)
+    overall_classifcation_loss, overall_regression_loss, classification_accuracy, precision, recall, f1_score = test_model_ingr(model, test_loader, device)
     print(f"Regression Loss (WMSE): {overall_regression_loss}\nClassification Loss: {overall_classifcation_loss}\nClassification Accuracy: {classification_accuracy}\nPrecision: {precision}\nRecall: {recall}\nF1-Score: {f1_score}")
     results = test_model_ingr_mae(model, nutrition_loader, log_min_max, device)
     print(f"Overall MAE: {results['overall_mae']}")
@@ -335,9 +346,9 @@ def eval(model_backbone, save_name, test_loader, log_min_max, s, device):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     if s:
-        save_path = os.path.join(save_dir, f'{s}.txt')
+        save_path = os.path.join(save_dir, f'{s}')
     else:
-        save_path = os.path.join(save_dir, f'{save_name}_eval.txt')
+        save_path = os.path.join(save_dir, f'{save_name}_eval')
                 
     with open(save_path, 'w') as f:
         f.write(f'Evaluation results for model: {model_backbone} saved as {save_name}\n')
