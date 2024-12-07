@@ -9,8 +9,7 @@ sys.path.append('./')
 import numpy as np
 import torch
 import pandas as pd
-from models.models import CLIngrModel, IngrPredModel, BaselineModel, IngrPredV2
-from models.test_models import ImageToMassPredictor
+from models.models import BaselineModel, IngrPredModel, MultimodalPredictionNetwork
 from utils.preprocess import prepare_test_loader, prepare_test_loader_ingr
 from torch import nn
 
@@ -47,7 +46,7 @@ for i in range(len(ingr_df)):
     ingr_dict[ingr] = (cal, fat, carb, protein)
 
 # Load the min-max values of the nutritional facts
-min_max_file = './utils/min_max_values_ingr.csv'
+min_max_file = './utils/data/min_max_values_ingr.csv'
 min_max_df = pd.read_csv(min_max_file)
 
 ### Load Nutrition Dataset ###
@@ -57,6 +56,8 @@ nutrition_df = pd.read_csv(nutritional_facts_file)
 # only select the nutritional facts with original values
 nutrition_loader = prepare_test_loader(nutrition_df, image_path, ['original_calories','original_mass','original_fat','original_carb','original_protein'], 224, 16)
 
+
+############################################################################################################
 def baseline_mae():
     total_absolute_error = 0.0
     total_count = 0
@@ -111,32 +112,24 @@ def perpare_data(model_backbone, batch_size, log_min_max):
 '''
 Test Model's MSE performance
 '''
-def ingredient_loss(outputs, targets, mask, alpha=0.9, l2_lambda=0.001, model_params=None):
+def ingredient_loss(outputs, targets, mask, alpha=0.9):
     """
     Parameters:
     - outputs: Predicted masses (batch_size, num_ingr)
     - targets: Ground truth masses (batch_size, num_ingr)
     - mask: Binary mask (batch_size, num_ingr), 1 for non-zero, 0 for zero
-    - alpha: Weight for non-zero ingredients
-    - l2_lambda: Weight for L2 regularization
-
     Returns:
     - Weighted Mean Squared Error with L2 regularization
     """
     # Compute weighted MSE
+    if outputs.shape != targets.shape:
+        raise ValueError(f"Output shape {outputs.shape} and target shape {targets.shape} do not match")
+    
     mse = (outputs - targets) ** 2
     weights = alpha * mask + (1 - alpha) * (1 - mask)
     weighted_mse = (weights * mse).mean()
 
-    # Compute L2 regularization
-    l2_reg = 0
-    if model_params is not None:
-        l2_reg = sum(torch.norm(p) ** 2 for p in model_params)
-    
-    # Combine losses
-    total_loss = weighted_mse + l2_lambda * l2_reg
-    return total_loss
-
+    return weighted_mse
 
 def test_model_ingr(model, dataloader, device):
     """    
@@ -148,7 +141,6 @@ def test_model_ingr(model, dataloader, device):
     
     model.eval()
     
-    total_classifcation_loss = 0.0  # Accumulate overall
     total_regression_loss = 0.0  # Accumulate overall
     
     total_correct = 0
@@ -159,9 +151,6 @@ def test_model_ingr(model, dataloader, device):
     global_actual_positives = 0
     
    
-    # Loss functions
-    bce_loss = nn.BCEWithLogitsLoss()
-
     with torch.no_grad():
         for inputs, targets in dataloader:
             inputs, targets = inputs.to(device), [t.to(device) for t in targets]
@@ -169,18 +158,16 @@ def test_model_ingr(model, dataloader, device):
             # outputs.shape = [(batch_size, 199)]
             
             ### BCE and MSE Loss ###
-            classifcation_loss = bce_loss((outputs > 0.0).float(), targets[0])
-            regression_loss = ingredient_loss(outputs[1], targets[1], targets[0], model_params=model.parameters(), l2_lambda = 0.0)
+            regression_loss = ingredient_loss(outputs, targets[1], targets[0])
             
             # Calculate overall MSE for this batch and accumulate            
-            total_classifcation_loss += classifcation_loss.item()
             total_regression_loss += regression_loss.item()
             
             ### Measure Classification Accuracy ###
             ### Precision, Recall, F1 Score ###
             predicted = (outputs > 0.0).float().cpu().numpy()
             targets_classification = targets[0].cpu().numpy()
-                        
+                    
             total_correct += np.sum(predicted == targets_classification)
             total_samples += targets_classification.size
                         
@@ -190,10 +177,9 @@ def test_model_ingr(model, dataloader, device):
 
     # Average the accumulated MSE over the number of batches
     num_batch = len(dataloader)
-    overall_classifcation_loss = total_classifcation_loss / num_batch
     overall_regression_loss = total_regression_loss / num_batch
     classification_accuracy = total_correct / total_samples
-    
+
     # Compute global precision, recall, F1-score
     precision = global_true_positives / global_predicted_positives if global_predicted_positives > 0 else 0.0
     recall = global_true_positives / global_actual_positives if global_actual_positives > 0 else 0.0
@@ -201,7 +187,7 @@ def test_model_ingr(model, dataloader, device):
         2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
     )
 
-    return overall_classifcation_loss, overall_regression_loss, classification_accuracy, precision, recall, f1_score
+    return overall_regression_loss, classification_accuracy, precision, recall, f1_score
 
 ############################################################################################################
 '''
@@ -235,10 +221,19 @@ def test_model_ingr_mae(model, dataloader, log_min_max, device):
         total_carbs = []
         total_protein = []
         
+        # outputs = (batch_size, 199)
         for batch_idx in range(outputs.shape[0]):
-            idx = np.nonzero(outputs[batch_idx])[0]
+            # Find the indices of all non-zero ingredients
+            idx = np.where(outputs[batch_idx] > 0.0)[0]
+            
             if len(idx) == 0:
-                continue
+                print("No ingredients found for this sample")
+                total_calories.append(0)
+                total_mass.append(0)
+                total_fat.append(0)
+                total_carbs.append(0)
+                total_protein.append(0)
+                continue # Skip this sample
             
             sample_calories = 0
             sample_mass = 0
@@ -247,27 +242,31 @@ def test_model_ingr_mae(model, dataloader, log_min_max, device):
             sample_protein = 0
             
             for ingr_idx in idx:
+                # Find the ingredient name and mass
                 ingr_name = ingr_index[ingr_idx]
                 mass = outputs[batch_idx][ingr_idx]
                 if log_min_max:
                     mass = lmm_scaling(ingr_name, mass)
                 else:
                     mass = np.exp(mass) - 1
-                
+                    
+                # Find the nutritional facts for this ingredient
                 cal, fat, carb, protein = ingr_dict[ingr_name]
                 
+                # Update the sample nutritional facts
                 sample_calories += mass * cal
                 sample_fat += mass * fat
                 sample_carbs += mass * carb
                 sample_protein += mass * protein
                 sample_mass += mass
-                
+            
+            # Append the sample nutritional facts
             total_calories.append(sample_calories)
             total_mass.append(sample_mass)
             total_fat.append(sample_fat)
             total_carbs.append(sample_carbs)
             total_protein.append(sample_protein)
-            
+                
         return {
             "calories": total_calories,
             "mass": total_mass,
@@ -283,7 +282,7 @@ def test_model_ingr_mae(model, dataloader, log_min_max, device):
             targets = targets.to(device)
 
             # Generate predictions
-            outputs = model(inputs) # outputs = [(batch_size, 199), (batch_size, 199)]
+            outputs = model(inputs)
             outputs = calculate_nutritional_facts(outputs, log_min_max, ingr_dict, ingr_index)
         
              # Process predictions and targets for each task
@@ -317,30 +316,57 @@ def test_model_ingr_mae(model, dataloader, log_min_max, device):
     
 
 ############################################################################################################
-def eval(model_backbone, save_name, test_loader, log_min_max, s, device):
+def eval(model_type, model_backbone, save_name, test_loader, log_min_max, s, device):
+    ######## LOAD MODEL ########
     num_ingr = 199
     pretrained = False
     
-    if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
-        model = IngrPredV2(199, model_backbone, False).to(device)
-    elif model_backbone == 'baseline':
+    if model_type == "multimodal":
+        # load embeddings of 199 ingredients
+        embeddings = torch.load('./utils/data/ingredient_embeddings_bert.pt', map_location=device, weights_only=True)
+        print(embeddings.shape)
+
+    if model_type == "multimodal":
+        if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
+            model = MultimodalPredictionNetwork(num_ingr, model_backbone, embeddings, pretrained, hidden_dim = 512).to(device)
+    elif model_type == "bb_lstm":
+        if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
+            model = IngrPredModel(num_ingr, model_backbone, pretrained).to(device)
+    elif model_type == 'baseline':
         model = BaselineModel(num_ingr).to(device)
     else:
-        raise ValueError("Invalid model backbone")
+        raise ValueError(f"Invalid model backbone: {model_backbone} or model type: {model_type}")
     
-    # load model
     model_path = f'./models/checkpoints/{save_name}.pth'
     model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     
-    print(f"Evaluating model: {model_backbone} saved as {save_name}")
+    print(f"Evaluating model: {model_type} with {model_backbone} backbone saved as {save_name}\n")
 
-    # Evaluate the model
-    overall_classifcation_loss, overall_regression_loss, classification_accuracy, precision, recall, f1_score = test_model_ingr(model, test_loader, device)
-    print(f"Regression Loss (WMSE): {overall_regression_loss}\nClassification Loss: {overall_classifcation_loss}\nClassification Accuracy: {classification_accuracy}\nPrecision: {precision}\nRecall: {recall}\nF1-Score: {f1_score}")
+    ######## EVALUATION ########
+    overall_regression_loss, classification_accuracy, precision, recall, f1_score = test_model_ingr(model, test_loader, device)
+    print(f"Regression Loss (WMSE): {overall_regression_loss}\nClassification Accuracy: {classification_accuracy}\nPrecision: {precision}\nRecall: {recall}\nF1-Score: {f1_score}\n")
+    
+    # baseline mae
+    baseline_mae_dict = {
+        'overall_mae': 65.1307957381579,
+        'calories': 168.5898685361842,
+        'mass': 118.26738935526316,
+        'fat': 10.349520950657896,
+        'carbs': 13.908921615131577,
+        'protein': 14.53827823355263
+    }
+
     results = test_model_ingr_mae(model, nutrition_loader, log_min_max, device)
-    print(f"Overall MAE: {results['overall_mae']}")
+    overall_improvement_percentage = 0.0
+    overall_mae_improvement = (baseline_mae_dict['overall_mae'] - results['overall_mae']) / baseline_mae_dict['overall_mae'] * 100
+    overall_improvement_percentage += overall_mae_improvement
+    print(f"Overall MAE: {results['overall_mae']} (Improvement: {overall_mae_improvement:.2f}%)")
     for task in results['task_mae'].keys():
-        print(f"{task}: {results['task_mae'][task]}")
+        improvement_percentage = (baseline_mae_dict[task] - results['task_mae'][task]) / baseline_mae_dict[task] * 100
+        overall_improvement_percentage += improvement_percentage
+        print(f"{task}: {results['task_mae'][task]} (Improvement: {improvement_percentage:.2f}%)")
+        
+    print(f"Overall Average Improvement: {overall_improvement_percentage / 6:.2f}%")
     
     save_dir = './results/'
     if not os.path.exists(save_dir):
@@ -351,12 +377,13 @@ def eval(model_backbone, save_name, test_loader, log_min_max, s, device):
         save_path = os.path.join(save_dir, f'{save_name}_eval')
                 
     with open(save_path, 'w') as f:
-        f.write(f'Evaluation results for model: {model_backbone} saved as {save_name}\n')
-        f.write(f"Regression Loss (WMSE): {overall_regression_loss}\nClassification Loss: {overall_classifcation_loss}\nClassification Accuracy: {classification_accuracy}\nPrecision: {precision}\nRecall: {recall}\nF1-Score: {f1_score}\n")
+        f.write(f'Evaluation results for model: {model_backbone} saved as {save_name}\n\n')
+        f.write(f"Regression Loss (WMSE): {overall_regression_loss}\nClassification Accuracy: {classification_accuracy}\nPrecision: {precision}\nRecall: {recall}\nF1-Score: {f1_score}\n")
         f.write('\n')
-        f.write(f"Overall MAE: {results['overall_mae']}\n")
+        f.write(f"Overall MAE: {results['overall_mae']} (Improvement: {overall_mae_improvement:.2f}%)\n")
         for task in results['task_mae'].keys():
-            f.write(f"{task}: {results['task_mae'][task]}\n")
+            f.write(f"{task}: {results['task_mae'][task]} (Improvement: {(baseline_mae_dict[task] - results['task_mae'][task]) / baseline_mae_dict[task] * 100:.2f}%)\n")
+        f.write(f"Overall Average Improvement: {overall_improvement_percentage / 6:.2f}%")
         
 if __name__ == "__main__":
     import argparse
@@ -373,14 +400,16 @@ if __name__ == "__main__":
 
     # parse arguments
     parser = argparse.ArgumentParser(description='Train a model')
+    parser.add_argument('--model_type', type=str, required=True, help='Type of the model')
     parser.add_argument('--model_backbone', type=str, required= True, help='Model to eval')
     parser.add_argument('--model_name', type=str, required=True, help='Name of the model checkpoint to save')
-    parser.add_argument('--log_min_max', type=str2bool, default=True, help='Used log min-max values')
+    parser.add_argument('--log_min_max', type=str2bool, required= False, default=False, help='Used log min-max values')
+    parser.add_argument('--batch_size', type=int, required=False, default=16, help='Batch size for evaluation')
     parser.add_argument('--s', type=str, required=False, help='Name of the file to save the results')
     
     args = parser.parse_args()
     
-    test_set = perpare_data(args.model_backbone, 16, args.log_min_max)
+    test_set = perpare_data(args.model_backbone, args.batch_size, args.log_min_max)
 
     # Evaluate the model
-    eval(args.model_backbone, args.model_name, test_set, args.log_min_max, args.s, device)
+    eval(args.model_type, args.model_backbone, args.model_name, test_set, args.log_min_max, args.s, device)
