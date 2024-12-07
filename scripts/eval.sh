@@ -25,16 +25,15 @@
 # customized_cnn_da_16_100
 
 # Single Job commands
-python ingr_eval.py --model_type customized --model_backbone cnn --model_name customized_cnn_da_16_100 --log_min_max False --batch_size 16
+python ingr_eval.py --model_type multimodal --model_backbone resnet --model_name multimodal_resnet_gnn_gat_pretrained_da_16_75_25 --log_min_max False --batch_size 16 --embed_path gnn_gat
 
 # MultiJob commands
-# python ingr_eval.py --model_type baseline --model_backbone cnn_mlp --model_name baseline_cnn_mlp_False_False_True_16_100_norelu --log_min_max False --batch_size 16 &
-# python ingr_eval.py --model_type bb_lstm --model_backbone vit --model_name bb_lstm_vit_pretrain_da_16_100 --log_min_max False --batch_size 16 &
-# python ingr_eval.py --model_type bb_lstm --model_backbone resnet --model_name bb_lstm_resnet_pretrain_da_16_100 --log_min_max False --batch_size 16 &
-# python ingr_eval.py --model_type bb_lstm --model_backbone resnet --model_name bb_lstm_resnet_no_pretrain_da_16_100 --log_min_max False --batch_size 16 &
-# python ingr_eval.py --model_type multimodal --model_backbone vit --model_name multimodal_vit_pretrain_da_16_100 --log_min_max False --batch_size 16 &
-# python ingr_eval.py --model_type multimodal --model_backbone resnet --model_name multimodal_resnet_pretrain_da_16_100 --log_min_max False --batch_size 16 &
-# python ingr_eval.py --model_type multimodal --model_backbone resnet --model_name multimodal_resnet_no_pretrain_da_16_100 --log_min_max False --batch_size 16 &
+# python ingr_eval.py --model_type customized --model_backbone cnn --model_name customized_cnn_da_16_100 --log_min_max False --batch_size 16 --embed_path bert &
+# python ingr_eval.py --model_type multimodal --model_backbone resnet --model_name multimodal_resnet_pretrained_da_16_75_25 --log_min_max False --batch_size 16 --embed_path bert &
+# python ingr_eval.py --model_type multimodal --model_backbone resnet --model_name multimodal_resnet_gnn_pretrain_da_16_75_25 --log_min_max False --batch_size 16 --embed_path gnn &
+# python ingr_eval.py --model_type multimodal --model_backbone resnet --model_name multimodal_resnet_gat_pretrained_da_16_75_25 --log_min_max False --batch_size 16 --embed_path gnn_gat &
+# python ingr_eval.py --model_type multimodal --model_backbone vit --model_name multimodal_vit_pretrained_da_16_75_25 --log_min_max False --batch_size 16 --embed_path bert &
 
+# # wait
 # wait
 

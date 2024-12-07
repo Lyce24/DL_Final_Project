@@ -501,100 +501,6 @@ class MultimodalPredictionNetwork(nn.Module):
         return prediction
     
 ############################################################################################################
-'''
-Customized Model
-- Ingredient Feature Extractor + Simple Image Feature Extractor (Trainable)
-- Attention Encoder-Decoder (For Complex Downstream Tasks)
-- Multimodal Fusion Layer
-- Mass Prediction Layer
-'''
-class CNNFeatureExtractor(nn.Module):
-    def __init__(self, hidden_dim=512):
-        super(CNNFeatureExtractor, self).__init__()
-        # Define convolutional layers to extract spatial features
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=1, padding=1)
-        self.conv3 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
-        self.conv4 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1)
-        self.conv5 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1)
-        
-        # Batch normalization layers
-        self.bn1 = nn.BatchNorm2d(64)
-        self.bn2 = nn.BatchNorm2d(128)
-        self.bn3 = nn.BatchNorm2d(256)
-        self.bn4 = nn.BatchNorm2d(512)
-        self.bn5 = nn.BatchNorm2d(512)
-        
-        # flatten the output from conv layers for FC
-        self.fc = nn.Linear(512 * 7 * 7, hidden_dim)  # Adjust the size based on input image dimensions
-
-    def forward(self, x):
-        batch_size = x.size(0)
-
-        # Pass input through convolutional layers with batch normalization and pooling
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = F.max_pool2d(x, 2, 2)  # Output: (batch, 64, 112, 112)
-        
-        x = F.relu(self.bn2(self.conv2(x)))
-        x = F.max_pool2d(x, 2, 2)  # Output: (batch, 128, 56, 56)
-        
-        x = F.relu(self.bn3(self.conv3(x)))
-        x = F.max_pool2d(x, 2, 2)  # Output: (batch, 256, 28, 28)
-        
-        x = F.relu(self.bn4(self.conv4(x)))
-        x = F.max_pool2d(x, 2, 2)  # Output: (batch, 512, 14, 14)
-        
-        x = F.relu(self.bn5(self.conv5(x)))
-        x = F.max_pool2d(x, 2, 2)  # Output: (batch, 512, 7, 7)
-        
-        # Flatten the output from conv layers for FC
-        x = x.view(batch_size, -1)  # Output: (batch, 512 * 7 * 7)
-        
-        # Pass through the fully connected layers
-        image_features = self.fc(x)  # Output: (batch, hidden_dim)
-        
-        return image_features
-    
-class CustomizedModel(nn.Module):
-    def __init__(self, num_ingr = 199, ingredient_embedding = None, hidden_dim = 512, lstm_layers = 1, num_heads = 8, dropout = 0.3, epsilon = 1e-6):
-        super(CustomizedModel, self).__init__()
-        
-        self.ingredient_embedding = ingredient_embedding
-        
-        self.ingredient_extractor = IngredientFeatureExtractor(embedding_dim=ingredient_embedding.size(1), hidden_dim=hidden_dim, lstm_layers=lstm_layers)
-        self.image_extractor = CNNFeatureExtractor(hidden_dim=hidden_dim)
-        
-        # Attention Encoder-Decoder
-        self.attn_enc_dec = AttentionEncoderDecoder(num_heads, hidden_dim, dropout, epsilon)
-        self.fusion_layer = nn.Linear(hidden_dim * 2, hidden_dim)
-        
-        # Mass prediction
-        self.mlp = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim // 2),
-            nn.ReLU(),
-            nn.Linear(hidden_dim // 2, num_ingr),
-        )
-
-    def forward(self, images):
-        # Extract features
-        ingredient_embeddings = self.ingredient_embedding.unsqueeze(0).repeat(images.size(0), 1, 1)
-        ingredients_features = self.ingredient_extractor(ingredient_embeddings)
-        dish_image_features = self.image_extractor(images)
-        
-        # Attention Encoder-Decoder
-        ingredients_encoded, dish_image_decoded = self.attn_enc_dec(ingredients_features, dish_image_features)
-
-        # Global pooling
-        # Multimodal fusion
-        fused_features = torch.cat([ingredients_encoded, dish_image_decoded], dim=1) # (batch_size, d_model * 2)
-        fused_features = self.fusion_layer(fused_features) # (batch_size, d_model)
-
-        # Mass prediction
-        prediction = self.mlp(fused_features) # (batch_size, num_ingr)
-        return prediction
-        
-    
-############################################################################################################
 if __name__ == "__main__":
     x = torch.randn(16, 3, 224, 224) # For ConvLSTM model and ViT model
     y = torch.randn(16, 3, 299, 299) # For InceptionV3 model
@@ -628,11 +534,6 @@ if __name__ == "__main__":
     print("\nTesting the Multimoal Encoder-Decoder Network")
     embed = torch.randn(num_ingr, 768) # Assume 768-dimensional embeddings
     model = MultimodalPredictionNetwork(num_ingr, "vit", embed, hidden_dim=512)
-    output = model(x)
-    print(f"Output shape: {output.shape}")
-    
-    print("\nTesting the Customized Model")
-    model = CustomizedModel(num_ingr, embed)
     output = model(x)
     print(f"Output shape: {output.shape}")
     

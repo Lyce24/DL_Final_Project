@@ -9,7 +9,7 @@ sys.path.append('./')
 import numpy as np
 import torch
 import pandas as pd
-from models.models import BaselineModel, IngrPredModel, MultimodalPredictionNetwork, CustomizedModel
+from models.models import BaselineModel, IngrPredModel, MultimodalPredictionNetwork
 from utils.preprocess import prepare_test_loader, prepare_test_loader_ingr
 from torch import nn
 
@@ -326,9 +326,7 @@ def eval(model_type, model_backbone, save_name, embed_path, test_loader, log_min
 
         print(embeddings.shape)
 
-    if model_type == "customized":
-        model = CustomizedModel(num_ingr, embeddings).to(device)
-    elif model_type == "multimodal":
+    if model_type == "multimodal":
         if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
             model = MultimodalPredictionNetwork(num_ingr, model_backbone, embeddings, pretrained, hidden_dim = 512).to(device)
     elif model_type == "bb_lstm":
