@@ -9,7 +9,7 @@ sys.path.append('./')
 import torch
 import pandas as pd
 from utils.preprocess import load_ingr_data
-from models.models import BaselineModel, IngrPredModel, MultimodalPredictionNetwork
+from models.models import BaselineModel, IngrPredModel, MultimodalPredictionNetwork, CustomizedModel
 import matplotlib.pyplot as plt
 import time
 
@@ -88,12 +88,16 @@ def validate_ingr_model(model, val_loader):
 def train(model_backbone, model_type, train_loader, val_loader, batch_size, pretrained, epochs, checkpoint_name, learning_rate, patience):
     num_ingr = 199
     
-    if model_type == "multimodal":
+    if model_type == "multimodal" or "customized":
         # load embeddings of 199 ingredients
-        embeddings = torch.load('./utils/data/ingredient_embeddings_bert.pt', map_location=device, weights_only=True)
+        # embeddings = torch.load('./utils/data/ingredient_embeddings_bert.pt', map_location=device, weights_only=True)
+        embeddings = torch.load('./utils/data/ingredient_embeddings_gnn_gat.pt', map_location=device, weights_only=True)
+
         print(embeddings.shape)
 
-    if model_type == "multimodal":
+    if model_type == "customized":
+        model = CustomizedModel(num_ingr, embeddings).to(device)
+    elif model_type == "multimodal":
         if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
             model = MultimodalPredictionNetwork(num_ingr, model_backbone, embeddings, pretrained, hidden_dim = 512).to(device)
     elif model_type == "bb_lstm":

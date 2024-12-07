@@ -11,13 +11,14 @@ import torch
 import pandas as pd
 from utils.preprocess import load_data
 from models.models import ConvLSTM, NutriPredModel
+from models.paper_model import PaperModel
 import torch.nn as nn
 import matplotlib.pyplot as plt
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def perpare_data(model_type, batch_size, log_min_max, da):
-    IMG_DIM = 299 if model_type == 'incept' else 224
+    IMG_DIM = 299 if model_type == 'incept' or model_type == 'paper' else 224
     dataset_path = '../data/nutrition5k_reconstructed/'
     prepared_path = './utils/data'
     image_path = os.path.join(dataset_path, 'images')
@@ -39,7 +40,7 @@ def perpare_data(model_type, batch_size, log_min_max, da):
     labels = ["calories", "mass", "fat", "carb", "protein"]
     return load_data(df_train=df_train, df_val=df_val, image_path=image_path, labels = labels, img_dim = IMG_DIM, batch_size=batch_size, da=da)
 
-def validate_model(model, val_loader, loss_fn=torch.nn.MSELoss()):
+def validate_model(model, val_loader, loss_fn):
     """
     Validate the model on a validation dataset.
 
@@ -65,6 +66,7 @@ def validate_model(model, val_loader, loss_fn=torch.nn.MSELoss()):
             batch_loss = 0.0
             for i, key in enumerate(outputs.keys()):
                 loss = loss_fn(outputs[key].squeeze(), targets[:, i])
+                    
                 task_losses[key] += loss.item()
                 batch_loss += loss.item()
             
@@ -81,14 +83,21 @@ def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epoc
     # print the model
     tasks = ["calories", "mass", "fat", "carb", "protein"]
     
-    if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
+    if model_backbone == 'paper':
+        model = PaperModel(tasks).to(device)
+    elif model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
         model = NutriPredModel(tasks, model_backbone, pretrained).to(device) if model_backbone != 'convlstm' else ConvLSTM(tasks).to(device)
     else:
         raise ValueError(f"Invalid model backbone {model_backbone}")
     
-    mse_loss = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    
+    if model_backbone != 'paper':
+        loss_fn = nn.MSELoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    else:
+        learning_rate = 1e-4
+        loss_fn = nn.L1Loss()
+        optimizer = torch.optim.RMSprop(model.parameters(), lr=1e-4, momentum=0.9, alpha=0.9, eps=1)
+
     # Print the number of trainable parameters
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Model Backbone: {model_backbone} (Learning rate: {learning_rate}, Batch Size: {batch_size}, Epochs: {epochs}, Pretrained: {pretrained}, Patience: {patience}, Saved as: {checkpoint_name})")
@@ -113,8 +122,7 @@ def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epoc
             outputs = model(inputs)
             
             # Calculate loss for all tasks
-            loss = sum(mse_loss(outputs[key].squeeze(), targets[:, i])
-                    for i, key in enumerate(outputs.keys()))
+            loss = sum(loss_fn(outputs[key].squeeze(), targets[:, i]) for i, key in enumerate(outputs.keys()))
             
             print(f"Epoch {epoch+1}/{epochs}, Batch {batch_idx+1}/{len(train_loader)}, Loss: {loss.item()}")
             
@@ -127,7 +135,7 @@ def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epoc
         end_time = time.time()
         epoch_time = (end_time - start_time) / 60
 
-        val_loss, ind_loss = validate_model(model, val_loader, mse_loss)
+        val_loss, ind_loss = validate_model(model, val_loader, loss_fn=loss_fn)
         ind_loss_str = ", ".join([f"{key}: {val:.4f}" for key, val in ind_loss.items()])
         
         print(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss/len(train_loader)}, Val Loss: {val_loss}, Ind Loss: {ind_loss_str}, Time Used: {epoch_time:.2f}")
@@ -181,7 +189,7 @@ if __name__ == '__main__':
     
     # parse arguments
     parser = argparse.ArgumentParser(description='Train a model')
-    parser.add_argument('--model_backbone', type=str, required= True, help='Model Backbone (inceptionv3, convlstm, vit, effnet)')
+    parser.add_argument('--model_backbone', type=str, required= True, help='Model Backbone to use')
     parser.add_argument('--pretrained', type=str2bool, default=False, help='Use pre-trained weights')
     parser.add_argument('--log_min_max', type=str2bool, default=False, help='Use log min max normalization')
     parser.add_argument('--da', type=str2bool, default=True, help='Use data augmentation')
@@ -193,7 +201,10 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    print(args)
     train_loader, val_loader = perpare_data(args.model_backbone, args.batch_size, args.log_min_max, args.da)
     print('Data Preprocessing Done')
     train(args.model_backbone, train_loader, val_loader, args.batch_size, args.pretrained, args.epochs, args.save_name, args.lr, args.patience)
+    
+    '''
+    python dp_train.py --model_backbone paper --pretrained True --log_min_max False --da False --batch_size 16 --epochs 100 --lr 1e-4 --save_name paper_model --patience 40
+    '''

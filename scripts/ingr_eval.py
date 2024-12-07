@@ -9,7 +9,7 @@ sys.path.append('./')
 import numpy as np
 import torch
 import pandas as pd
-from models.models import BaselineModel, IngrPredModel, MultimodalPredictionNetwork
+from models.models import BaselineModel, IngrPredModel, MultimodalPredictionNetwork, CustomizedModel
 from utils.preprocess import prepare_test_loader, prepare_test_loader_ingr
 from torch import nn
 
@@ -316,17 +316,19 @@ def test_model_ingr_mae(model, dataloader, log_min_max, device):
     
 
 ############################################################################################################
-def eval(model_type, model_backbone, save_name, test_loader, log_min_max, s, device):
+def eval(model_type, model_backbone, save_name, embed_path, test_loader, log_min_max, s, device):
     ######## LOAD MODEL ########
     num_ingr = 199
     pretrained = False
     
-    if model_type == "multimodal":
-        # load embeddings of 199 ingredients
-        embeddings = torch.load('./utils/data/ingredient_embeddings_bert.pt', map_location=device, weights_only=True)
+    if model_type == "multimodal" or "customized":
+        embeddings = torch.load(f'./utils/data/ingredient_embeddings_{embed_path}.pt', map_location=device, weights_only=True)
+
         print(embeddings.shape)
 
-    if model_type == "multimodal":
+    if model_type == "customized":
+        model = CustomizedModel(num_ingr, embeddings).to(device)
+    elif model_type == "multimodal":
         if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
             model = MultimodalPredictionNetwork(num_ingr, model_backbone, embeddings, pretrained, hidden_dim = 512).to(device)
     elif model_type == "bb_lstm":
@@ -405,6 +407,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_name', type=str, required=True, help='Name of the model checkpoint to save')
     parser.add_argument('--log_min_max', type=str2bool, required= False, default=False, help='Used log min-max values')
     parser.add_argument('--batch_size', type=int, required=False, default=16, help='Batch size for evaluation')
+    parser.add_argument('--embed_path', type=str, required=False, default='bert', help='Path to the ingredient embeddings')
     parser.add_argument('--s', type=str, required=False, help='Name of the file to save the results')
     
     args = parser.parse_args()
@@ -412,4 +415,4 @@ if __name__ == "__main__":
     test_set = perpare_data(args.model_backbone, args.batch_size, args.log_min_max)
 
     # Evaluate the model
-    eval(args.model_type, args.model_backbone, args.model_name, test_set, args.log_min_max, args.s, device)
+    eval(args.model_type, args.model_backbone, args.model_name, args.embed_path, test_set, args.log_min_max, args.s, device)

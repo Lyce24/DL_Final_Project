@@ -27,7 +27,7 @@ dataset_path = '../data/nutrition5k_reconstructed/'
 image_path = os.path.join(dataset_path, 'images')
 
 # Load the min-max values
-min_max_file = './utils/min_max_values.csv'
+min_max_file = './utils/data/min_max_values.csv'
 min_max_df = pd.read_csv(min_max_file)
 
 ### Load Nutrition Dataset ###

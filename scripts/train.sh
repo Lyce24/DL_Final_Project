@@ -3,7 +3,7 @@
 # Slurm commands
 #SBATCH --partition=gpus             # Use the GPU partition
 #SBATCH --gres=gpu:1                 # Request No. of GPUs
-#SBATCH --nodelist=gpu1705           # Explicitly request GPUs
+#SBATCH --nodelist=gpu1704           # Explicitly request GPUs
 #SBATCH --time=24:00:00              # Maximum runtime
 #SBATCH --mem=24G                    # Memory allocation
 #SBATCH -J multimodal                      # Job name
@@ -29,14 +29,14 @@
 # Define the arguments for the training script
 MODEL_TYPE="multimodal"
 MODEL_BACKBONE="resnet"
-PRETRAINED="False"
+PRETRAINED="True"
 LOG_MIN_MAX="False"
 DATA_AUGMENTATION="True"
 BATCH_SIZE=16
-EPOCHS=100
-PATIENCE=100
+EPOCHS=75
+PATIENCE=25
 # save_name = model_type + "_" + model_backbone + "_" + pretrained + "_" + log_min_max + "_" + da + "_" + batch_size + "_" + epochs
-SAVE_NAME="multimodal_resnet_no_pretrain_da_16_100"
+SAVE_NAME="multimodal_resnet_gat_pretrained_da_16_75_25"
 
 # Print the job configuration for logging purposes
 echo "Running model training with the following configuration:"
