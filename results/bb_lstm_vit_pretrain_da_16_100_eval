@@ -1,0 +1,15 @@
+Evaluation results for model: vit saved as bb_lstm_vit_pretrain_da_16_100
+
+Regression Loss (WMSE): 0.06402644269952648
+Classification Accuracy: 0.44824451203385346
+Precision: 0.05879859855334539
+Recall: 0.9683573755234993
+F1-Score: 0.1108654537705442
+
+Overall MAE: 37.11241927234054 (Improvement: 43.02%)
+calories: 100.04896725381823 (Improvement: 40.66%)
+mass: 62.547169665756975 (Improvement: 47.11%)
+fat: 5.881102581444588 (Improvement: 43.18%)
+carbs: 8.49379015464865 (Improvement: 38.93%)
+protein: 8.59106670603415 (Improvement: 40.91%)
+Overall Average Improvement: 42.30%

@@ -1,0 +1,15 @@
+Evaluation results for model: cnn_mlp saved as baseline_cnn_mlp_False_False_True_16_100_norelu
+
+Regression Loss (WMSE): 0.09063723644143656
+Classification Accuracy: 0.37790928325839723
+Precision: 0.05305186789933748
+Recall: 0.9799906933457422
+F1-Score: 0.1006547818190508
+
+Overall MAE: 50.82524797706353 (Improvement: 21.96%)
+calories: 135.62277848891972 (Improvement: 19.55%)
+mass: 89.21442223222633 (Improvement: 24.57%)
+fat: 7.805593802359591 (Improvement: 24.58%)
+carbs: 10.973474830205697 (Improvement: 21.10%)
+protein: 10.509970531606282 (Improvement: 27.71%)
+Overall Average Improvement: 23.25%
