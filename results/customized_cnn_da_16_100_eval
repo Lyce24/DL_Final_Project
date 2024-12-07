@@ -1,0 +1,15 @@
+Evaluation results for model: cnn saved as customized_cnn_da_16_100
+
+Regression Loss (WMSE): 0.08188793945469354
+Classification Accuracy: 0.42887133033589
+Precision: 0.05518642578661249
+Recall: 0.9353187529083294
+F1-Score: 0.10422338025978067
+
+Overall MAE: 40.48112872894799 (Improvement: 37.85%)
+calories: 110.038761430312 (Improvement: 34.73%)
+mass: 67.33282810057464 (Improvement: 43.07%)
+fat: 6.375651166881434 (Improvement: 38.40%)
+carbs: 9.918970082404385 (Improvement: 28.69%)
+protein: 8.739432864567638 (Improvement: 39.89%)
+Overall Average Improvement: 37.10%
