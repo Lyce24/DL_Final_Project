@@ -69,6 +69,7 @@ scripts/output/
 scripts/output/*
 
 models/test_models.py
+models/test_models.ipynb
 itm.py
 
 scripts/test*

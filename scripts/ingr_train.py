@@ -9,7 +9,7 @@ sys.path.append('./')
 import torch
 import pandas as pd
 from utils.preprocess import load_ingr_data
-from models.models import CLIngrModel, IngrPredModel, BaselineModel, IngrPredV2
+from models.models import BaselineModel, IngrPredModel, MultimodalPredictionNetwork
 import matplotlib.pyplot as plt
 import time
 
@@ -42,34 +42,26 @@ def perpare_data(model_type, batch_size, log_min_max, da):
     
     return load_ingr_data(df_train_ingr_id=df_train_id, df_val_ingr_id=df_val_id, df_train_ingr=df_train, df_val_ingr=df_val, image_path=image_path, img_dim=IMG_DIM, batch_size=batch_size)
 
-def ingredient_loss(outputs, targets, mask, alpha=0.9, l2_lambda=0.001, model_params=None):
+def ingredient_loss(outputs, targets, mask, alpha=0.9):
     """
     Parameters:
     - outputs: Predicted masses (batch_size, num_ingr)
     - targets: Ground truth masses (batch_size, num_ingr)
     - mask: Binary mask (batch_size, num_ingr), 1 for non-zero, 0 for zero
-    - alpha: Weight for non-zero ingredients
-    - l2_lambda: Weight for L2 regularization
-
     Returns:
     - Weighted Mean Squared Error with L2 regularization
     """
     # Compute weighted MSE
+    if outputs.shape != targets.shape:
+        raise ValueError(f"Output shape {outputs.shape} and target shape {targets.shape} do not match")
+    
     mse = (outputs - targets) ** 2
     weights = alpha * mask + (1 - alpha) * (1 - mask)
     weighted_mse = (weights * mse).mean()
 
-    # Compute L2 regularization
-    l2_reg = 0
-    if model_params is not None:
-        l2_reg = sum(torch.norm(p) ** 2 for p in model_params)
-    
-    # Combine losses
-    total_loss = weighted_mse + l2_lambda * l2_reg
-    return total_loss
+    return weighted_mse
 
-
-def validate_ingr_model(model, val_loader, l2):
+def validate_ingr_model(model, val_loader):
     model.eval()
     total_loss = 0.0
 
@@ -83,31 +75,40 @@ def validate_ingr_model(model, val_loader, l2):
             outputs = model(inputs)
 
             # Compute loss
-            regression_loss = ingredient_loss(outputs, targets[1], targets[0], model_params=model.parameters(), l2_lambda=l2)
-
+            loss = ingredient_loss(outputs, targets[1], targets[0])
+            
             # Accumulate losses
-            total_loss += regression_loss.item()
+            total_loss += loss.item()
 
     # Compute average losses
     num_batches = len(val_loader)
     avg_total_loss = total_loss / num_batches
     return avg_total_loss
 
-def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epochs, checkpoint_name, learning_rate, patience, l2):
+def train(model_backbone, model_type, train_loader, val_loader, batch_size, pretrained, epochs, checkpoint_name, learning_rate, patience):
     num_ingr = 199
+    
+    if model_type == "multimodal":
+        # load embeddings of 199 ingredients
+        embeddings = torch.load('./utils/data/ingredient_embeddings_bert.pt', map_location=device, weights_only=True)
+        print(embeddings.shape)
 
-    if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
-        model = IngrPredV2(num_ingr, model_backbone, pretrained).to(device) if model_backbone != 'convlstm' else CLIngrModel(num_ingr).to(device)
-    elif model_backbone == 'baseline':
+    if model_type == "multimodal":
+        if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
+            model = MultimodalPredictionNetwork(num_ingr, model_backbone, embeddings, pretrained, hidden_dim = 512).to(device)
+    elif model_type == "bb_lstm":
+        if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
+            model = IngrPredModel(num_ingr, model_backbone, pretrained).to(device)
+    elif model_type == 'baseline':
         model = BaselineModel(num_ingr).to(device)
     else:
-        raise ValueError("Invalid model backbone")
+        raise ValueError(f"Invalid model backbone: {model_backbone} or model type: {model_type}")
     
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     
     # Print the number of trainable parameters
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Model Backbone: {model_backbone} (Learning rate: {learning_rate}, Batch Size: {batch_size}, Epochs: {epochs}, Pretrained: {pretrained}, l2: {l2}, Patience: {patience}, Saved as: {checkpoint_name})")
+    print(f"Model Type: {model_type} (Backbone: {model_backbone}, Learning rate: {learning_rate}, Batch Size: {batch_size}, Epochs: {epochs}, Pretrained: {pretrained},  Patience: {patience}, Saved as: {checkpoint_name})")
     print(f"Number of trainable parameters: {num_params}")
 
     best_val_loss = float('inf')
@@ -127,8 +128,7 @@ def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epoc
             optimizer.zero_grad()
             outputs = model(inputs)
             
-            # Calculate loss for all tasks
-            loss = ingredient_loss(outputs, targets[1], targets[0], model_params=model.parameters(), l2_lambda=l2)
+            loss = ingredient_loss(outputs, targets[1], targets[0])
             
             print(f"Epoch {epoch+1}/{epochs}, Batch {batch_idx+1}/{len(train_loader)}, Loss: {loss.item()}")
             
@@ -138,7 +138,7 @@ def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epoc
 
             train_loss += loss.item()
     
-        val_loss = validate_ingr_model(model, val_loader, l2)
+        val_loss = validate_ingr_model(model, val_loader)
         end_time = time.time()
         epoch_time = (end_time - start_time) / 60
         
@@ -174,8 +174,6 @@ def train(model_backbone, train_loader, val_loader, batch_size, pretrained, epoc
     
     print(f"Total training time: {training_end_time - training_start_time:.2f} seconds, Best Validation Loss: {best_val_loss}")
     
-
-
 if __name__ == '__main__':
     import argparse
 
@@ -193,6 +191,7 @@ if __name__ == '__main__':
     
     # parse arguments
     parser = argparse.ArgumentParser(description='Train a model')
+    parser.add_argument('--model_type', type=str, required= True, help='Model Type (multimodal, bb_lstm, baseline)')
     parser.add_argument('--model_backbone', type=str, required= True, help='Model Backbone (convlstm, vit, clv2, convnx)')
     parser.add_argument('--pretrained', type=str2bool, default=False, help='Use pre-trained weights')
     parser.add_argument('--log_min_max', type=str2bool, default=False, help='Use log min max normalization')
@@ -202,10 +201,22 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
     parser.add_argument('--save_name', type=str, required=False, help='Name of the model checkpoint to save')
     parser.add_argument('--patience', type=int, default=10, help='Patience for early stopping')  
-    parser.add_argument('--l2', type=float, default=0.001, help='L2 regularization weight')
     
     args = parser.parse_args()
     
-    train_loader, val_loader = perpare_data(args.model_backbone, args.batch_size, args.log_min_max, args.da)
+    train_loader, val_loader = perpare_data(model_type=args.model_backbone,
+                                            batch_size=args.batch_size,
+                                            log_min_max=args.log_min_max,
+                                            da=args.da)
+    
     print('Data Preprocessing Done')
-    train(args.model_backbone, train_loader, val_loader, args.batch_size, args.pretrained, args.epochs, args.save_name, args.lr, args.patience, args.l2)
+    train(model_backbone=args.model_backbone, 
+            model_type=args.model_type,
+            train_loader=train_loader,
+            val_loader=val_loader,
+            batch_size=args.batch_size,
+            pretrained=args.pretrained,
+            epochs=args.epochs,
+            checkpoint_name=args.save_name,
+            learning_rate=args.lr,
+            patience=args.patience)

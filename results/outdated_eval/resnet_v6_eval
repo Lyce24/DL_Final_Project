@@ -1,0 +1,15 @@
+Evaluation results for model: resnet saved as resnet_v6
+# resnet_v6 => bb_lstm (resnet + lstm, hidden_dim_1 = 1024)
+Regression Loss (WMSE): 0.20230790345292343
+Classification Loss: 0.7688846713618228
+Classification Accuracy: 0.8541060565987834
+Precision: 0.17747077577045697
+Recall: 0.8548161935784085
+F1-Score: 0.29392000000000007
+
+Overall MAE: 36.202364100487046
+calories: 95.91615221555578
+mass: 62.093829071835465
+fat: 5.6597860312081965
+carbs: 9.53140630477216
+protein: 7.810646879063626

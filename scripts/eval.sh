@@ -11,5 +11,5 @@
 
 
 # python dp_eval.py --model_backbone convlstm --model_name convlstm_lmm_da_v2 --log_min_max True
-python ingr_eval.py --model_backbone baseline --model_name baseline --log_min_max False
+python ingr_eval.py --model_backbone resnet --model_name resnet_v6 --log_min_max False
 # python test_eval.py --model_backbone resnet --model_name image_to_mass_no_pretrained_v1 --log_min_max False

@@ -9,7 +9,7 @@ sys.path.append('./')
 import numpy as np
 import torch
 import pandas as pd
-from models.models import CLIngrModel, IngrPredModel, BaselineModel
+from models.models import CLIngrModel, IngrPredModel, BaselineModel, IngrPredV2
 from models.test_models import ImageToMassPredictor
 from utils.preprocess import prepare_test_loader, prepare_test_loader_ingr
 from torch import nn
@@ -322,7 +322,7 @@ def eval(model_backbone, save_name, test_loader, log_min_max, s, device):
     pretrained = False
     
     if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
-        model = IngrPredModel(num_ingr, model_backbone, pretrained).to(device) if model_backbone != 'convlstm' else CLIngrModel(num_ingr).to(device)
+        model = IngrPredV2(199, model_backbone, False).to(device)
     elif model_backbone == 'baseline':
         model = BaselineModel(num_ingr).to(device)
     else:
