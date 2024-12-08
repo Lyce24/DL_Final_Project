@@ -41,12 +41,12 @@
 # Define the arguments for the evaluation script
 MODEL_TYPE="NutriFusionNet" # "NutriFusionNet", "bb_lstm", "baseline"
 MODEL_BACKBONE="resnet" # "resnet", "vit"
-MODEL_NAME="multimodal_resnet_concat_pretrained_da_16_75_25"
+MODEL_NAME="NutriFusionNet_resnet_2lstm_2attn_bert_pretrained_da_16_75_25"
 LOG_MIN_MAX="False"
 BATCH_SIZE=16
-EMBED_PATH="concat"
-LSTM_LAYERS=1
-ATTN_LAYERS=1
+EMBED_PATH="bert"
+LSTM_LAYERS=2
+ATTN_LAYERS=2
 
 # Print the job configuration for logging purposes
 echo "Running model evaluation with the following configuration:"
