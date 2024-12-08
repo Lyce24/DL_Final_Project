@@ -372,53 +372,15 @@ class AttentionEncoderDecoder(nn.Module):
         dish_image_decoded = self.dish_image_decoded(dish_image_sa + dish_image_aligned)
 
         return ingredients_encoded, dish_image_decoded
-    
-class MultimodalPredictionNetwork(nn.Module):
-    def __init__(self, num_ingr = 199, backbone = "vit", ingredient_embedding = None, pretrained = True, hidden_dim = 512, lstm_layers = 1, num_heads = 8, dropout = 0.3, epsilon = 1e-6):
-        super(MultimodalPredictionNetwork, self).__init__()
-        
-        self.ingredient_embedding = ingredient_embedding
-        
-        self.ingredient_extractor = IngredientFeatureExtractor(embedding_dim=ingredient_embedding.size(1), hidden_dim=hidden_dim, lstm_layers=lstm_layers)
-        self.image_extractor = ImageFeatureExtractor(backbone=backbone, pretrained = pretrained, hidden_dim=hidden_dim)
-        
-        # Attention Encoder-Decoder
-        self.attn_enc_dec = AttentionEncoderDecoder(num_heads, hidden_dim, dropout, epsilon)
-        self.fusion_layer = nn.Linear(hidden_dim * 2, hidden_dim)
-        
-        # Mass prediction
-        self.mlp = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim // 2),
-            nn.ReLU(),
-            nn.Linear(hidden_dim // 2, num_ingr),
-        )
-
-    def forward(self, images):
-        # Extract features
-        ingredient_embeddings = self.ingredient_embedding.unsqueeze(0).repeat(images.size(0), 1, 1)
-        ingredients_features = self.ingredient_extractor(ingredient_embeddings)
-        dish_image_features = self.image_extractor(images)
-        
-        # Attention Encoder-Decoder
-        ingredients_encoded, dish_image_decoded = self.attn_enc_dec(ingredients_features, dish_image_features)
-
-        # Global pooling
-        # Multimodal fusion
-        fused_features = torch.cat([ingredients_encoded, dish_image_decoded], dim=1) # (batch_size, d_model * 2)
-        fused_features = self.fusion_layer(fused_features) # (batch_size, d_model)
-
-        # Mass prediction
-        prediction = self.mlp(fused_features) # (batch_size, num_ingr)
-        return prediction
 
 ############################################################################################################
 '''
 Stacking Attention Encoder-Decoder Network
 '''
 
-class AttentionEncoderDecoderV2(nn.Module):
+class SMEDA(nn.Module):
     def __init__(self, num_heads, d_model, dropout=0.3, num_layers=3, epsilon=1e-6):
-        super(AttentionEncoderDecoderV2, self).__init__()
+        super(SMEDA, self).__init__()
         self.num_heads = num_heads
         self.d_model = d_model
         self.dropout = dropout
@@ -477,23 +439,22 @@ class AttentionEncoderDecoderV2(nn.Module):
 
         return ingr_encoded, dish_decoded
         
-
-class SMEDAN(nn.Module):
-    def __init__(self, num_ingr = 199, backbone = "resnet", ingredient_embedding = None, pretrained = True, hidden_dim = 512, lstm_layers = 1, num_heads = 8, dropout = 0.3, epsilon = 1e-6, num_layers = 3):
-        super(SMEDAN, self).__init__()
+class NutriFusionNet(nn.Module):
+    def __init__(self, num_ingr = 199, backbone = "resnet", ingredient_embedding = None, pretrained = True, hidden_dim = 512, lstm_layers = 1, num_heads = 8, dropout = 0.3, epsilon = 1e-6, num_layers = 2):
+        super(NutriFusionNet, self).__init__()
         
         self.ingredient_embedding = ingredient_embedding
         
         self.ingredient_extractor = IngredientFeatureExtractor(embedding_dim=ingredient_embedding.size(1), hidden_dim=hidden_dim, lstm_layers=lstm_layers)
         self.image_extractor = ImageFeatureExtractor(backbone=backbone, pretrained = pretrained, hidden_dim=hidden_dim)
         
-        # Attention Encoder-Decoder
-        self.attn_enc_dec = AttentionEncoderDecoderV2(num_heads = num_heads, 
-                                                        d_model = hidden_dim, 
-                                                        dropout = dropout, 
-                                                        num_layers = 3, 
-                                                        epsilon = epsilon)
-        
+        if num_layers == 1:
+            self.attn_enc_dec = AttentionEncoderDecoder(num_heads, hidden_dim, dropout, epsilon)
+        elif num_layers > 1:
+            self.attn_enc_dec = SMEDA(num_heads, hidden_dim, dropout, num_layers, epsilon)
+        else:
+            raise ValueError(f"Invalid number of layers {num_layers}")
+
         self.fusion_layer = nn.Linear(hidden_dim * 2, hidden_dim)
         
         # Mass prediction
@@ -545,14 +506,9 @@ if __name__ == "__main__":
     output = model(x)
     print(f"Output shape: {output.shape}")       
 
-    print("\nTesting the Multimoal Encoder-Decoder Network")
     embed = torch.randn(num_ingr, 768) # Assume 768-dimensional embeddings
-    model = MultimodalPredictionNetwork(num_ingr, "vit", embed, hidden_dim=512)
-    output = model(x)
-    print(f"Output shape: {output.shape}")
-    
-    print("\nTesting the SMEDN")
-    model = SMEDAN(num_ingr, "vit", embed, hidden_dim=512)
+    print("\nTesting the NutriFusionNet")
+    model = NutriFusionNet(num_ingr, "vit", embed, hidden_dim=512)
     output = model(x)
     print(f"Output shape: {output.shape}")
     

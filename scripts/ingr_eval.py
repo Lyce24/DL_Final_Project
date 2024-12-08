@@ -9,7 +9,7 @@ sys.path.append('./')
 import numpy as np
 import torch
 import pandas as pd
-from models.models import BaselineModel, IngrPredModel, MultimodalPredictionNetwork, SMEDAN
+from models.models import BaselineModel, IngrPredModel, NutriFusionNet
 from utils.preprocess import prepare_test_loader, prepare_test_loader_ingr
 from torch import nn
 
@@ -316,22 +316,18 @@ def test_model_ingr_mae(model, dataloader, log_min_max, device):
     
 
 ############################################################################################################
-def eval(model_type, model_backbone, save_name, embed_path, test_loader, log_min_max, s, device):
+def eval(model_type, model_backbone, save_name, embed_path, test_loader, log_min_max, s, device, lstm_layers, attn_layers):
     ######## LOAD MODEL ########
     num_ingr = 199
     pretrained = False
-    
-    if model_type == "multimodal" or "customized" or "smedan":
-        embeddings = torch.load(f'./utils/embeddings/ingredient_embeddings_{embed_path}.pt', map_location=device, weights_only=True)
 
+    if model_type == "multimodal" or "customized" or "NutriFusionNet":
+        embeddings = torch.load(f'./utils/embeddings/ingredient_embeddings_{embed_path}.pt', map_location=device, weights_only=True)
         print(embeddings.shape)
 
-    if model_type == "smedan":
+    if model_type == "NutriFusionNet":
         if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
-            model = SMEDAN(num_ingr, model_backbone, embeddings, pretrained).to(device)
-    elif model_type == "multimodal":
-        if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
-            model = MultimodalPredictionNetwork(num_ingr, model_backbone, embeddings, pretrained, hidden_dim = 512).to(device)
+            model = NutriFusionNet(num_ingr, model_backbone, embeddings, pretrained, lstm_layers=lstm_layers, num_layers= attn_layers).to(device)
     elif model_type == "bb_lstm":
         if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
             model = IngrPredModel(num_ingr, model_backbone, pretrained).to(device)
@@ -410,10 +406,12 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, required=False, default=16, help='Batch size for evaluation')
     parser.add_argument('--embed_path', type=str, required=False, default='bert', help='Path to the ingredient embeddings')
     parser.add_argument('--s', type=str, required=False, help='Name of the file to save the results')
+    parser.add_argument('--lstm_layers', type=int, required=False, default=1, help='Number of LSTM layers')
+    parser.add_argument('--attn_layers', type=int, required=False, default=1, help='Number of Attention layers')
     
     args = parser.parse_args()
     
     test_set = perpare_data(args.model_backbone, args.batch_size, args.log_min_max)
 
     # Evaluate the model
-    eval(args.model_type, args.model_backbone, args.model_name, args.embed_path, test_set, args.log_min_max, args.s, device)
+    eval(args.model_type, args.model_backbone, args.model_name, args.embed_path, test_set, args.log_min_max, args.s, device, args.lstm_layers, args.attn_layers)

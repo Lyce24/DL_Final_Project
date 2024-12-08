@@ -9,7 +9,7 @@ sys.path.append('./')
 import torch
 import pandas as pd
 from utils.preprocess import load_ingr_data
-from models.models import BaselineModel, IngrPredModel, MultimodalPredictionNetwork, SMEDAN
+from models.models import BaselineModel, IngrPredModel, NutriFusionNet
 import matplotlib.pyplot as plt
 import time
 
@@ -85,20 +85,16 @@ def validate_ingr_model(model, val_loader):
     avg_total_loss = total_loss / num_batches
     return avg_total_loss
 
-def train(model_backbone, model_type, embed_path, train_loader, val_loader, batch_size, pretrained, epochs, checkpoint_name, learning_rate, patience):
+def train(model_backbone, model_type, embed_path, train_loader, val_loader, batch_size, pretrained, epochs, checkpoint_name, learning_rate, patience, lstm_layers, attn_layers):
     num_ingr = 199
     
-    if model_type == "multimodal" or "customized" or "smedan":
+    if model_type == "multimodal" or "customized" or "NutriFusionNet":
         embeddings = torch.load(f'./utils/embeddings/ingredient_embeddings_{embed_path}.pt', map_location=device, weights_only=True)
-
         print(embeddings.shape)
 
-    if model_type == "smedan":
+    if model_type == "NutriFusionNet":
         if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
-            model = SMEDAN(num_ingr, model_backbone, embeddings, pretrained).to(device)
-    elif model_type == "multimodal":
-        if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
-            model = MultimodalPredictionNetwork(num_ingr, model_backbone, embeddings, pretrained, hidden_dim = 512).to(device)
+            model = NutriFusionNet(num_ingr, model_backbone, embeddings, pretrained, lstm_layers=lstm_layers, num_layers= attn_layers).to(device)
     elif model_type == "bb_lstm":
         if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
             model = IngrPredModel(num_ingr, model_backbone, pretrained).to(device)
@@ -204,7 +200,9 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=50, help='Number of epochs')
     parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
     parser.add_argument('--save_name', type=str, required=False, help='Name of the model checkpoint to save')
-    parser.add_argument('--patience', type=int, default=10, help='Patience for early stopping')  
+    parser.add_argument('--patience', type=int, default=10, help='Patience for early stopping')
+    parser.add_argument('--lstm_layers', type=int, required=False, default=1, help='Number of LSTM layers')
+    parser.add_argument('--attn_layers', type=int, required=False, default=1, help='Number of Attention layers')
     
     args = parser.parse_args()
     
@@ -224,4 +222,6 @@ if __name__ == '__main__':
             epochs=args.epochs,
             checkpoint_name=args.save_name,
             learning_rate=args.lr,
-            patience=args.patience)
+            patience=args.patience,
+            lstm_layers=args.lstm_layers,
+            attn_layers=args.attn_layers)

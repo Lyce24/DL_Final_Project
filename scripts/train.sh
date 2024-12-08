@@ -3,13 +3,14 @@
 # Slurm commands
 #SBATCH --partition=gpus             # Use the GPU partition
 #SBATCH --gres=gpu:1                 # Request No. of GPUs
-#SBATCH --nodelist=gpu1705           # Explicitly request GPUs
+#SBATCH --nodelist=gpu1704           # Explicitly request GPUs
 #SBATCH --time=24:00:00              # Maximum runtime
 #SBATCH --mem=24G                    # Memory allocation
-#SBATCH -J smedan                      # Job name
-#SBATCH -o ./output/smedan-%j.out      # Standard output
-#SBATCH -e ./output/smedan-%j.err      # Standard error
+#SBATCH -J NutriFusionNet                      # Job name
+#SBATCH -o ./output/NutriFusionNet-%j.out      # Standard output
+#SBATCH -e ./output/NutriFusionNet-%j.err      # Standard error
 
+# parser = argparse.ArgumentParser(description='Train a model')
 # parser.add_argument('--model_type', type=str, required= True, help='Model Type (multimodal, bb_lstm, baseline)')
 # parser.add_argument('--model_backbone', type=str, required= True, help='Model Backbone (convlstm, vit, clv2, convnx)')
 # parser.add_argument('--embed_path', type=str, required=False, default='bert', help='Path to the ingredient embeddings')
@@ -20,26 +21,25 @@
 # parser.add_argument('--epochs', type=int, default=50, help='Number of epochs')
 # parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
 # parser.add_argument('--save_name', type=str, required=False, help='Name of the model checkpoint to save')
-# parser.add_argument('--patience', type=int, default=10, help='Patience for early stopping')  
+# parser.add_argument('--patience', type=int, default=10, help='Patience for early stopping')
+# parser.add_argument('--lstm_layers', type=int, required=False, default=1, help='Number of LSTM layers')
+# parser.add_argument('--attn_layers', type=int, required=False, default=1, help='Number of Attention layers')
 
-# v5 - 16 batch size, 100 epochs, no l2, no log min max, data augmentation, no patience, no patience, hidden_dim_2 = 1024
-# v6 - Backbone + LSTM, 16 batch size, 100 epochs, no l2, no log min max, data augmentation, no patience, no patience, hidden_dim_1 = 1024, hidden_dim_2 = 512
-# v7 - Backbone+ Bidirectional LSTM + Positional Encoding
-
-# Run jobs in parallel, assigning specific GPUs using CUDA_VISIBLE_DEVICES
 # Define the arguments for the training script
-# MODEL_TYPE="multimodal", "bb_lstm", "baseline", "smedan"
-MODEL_TYPE="smedan"
+# MODEL_TYPE="bb_lstm", "baseline", "NutriFusionNet"
+MODEL_TYPE="NutriFusionNet"
 MODEL_BACKBONE="resnet"
-EMBED_PATH="gat_v2"
+EMBED_PATH="bert"
 PRETRAINED="True"
 LOG_MIN_MAX="False"
 DATA_AUGMENTATION="True"
 BATCH_SIZE=16
 EPOCHS=75
 PATIENCE=25
+LSTM_LAYERS=2
+ATTN_LAYERS=2
 # save_name = model_type + "_" + model_backbone + "_" + embed_path + "_" + pretrained + "_" + log_min_max + "_" + da + "_" + batch_size + "_" + epochs + "_" + patience
-SAVE_NAME="smedan_resnet_gat_v2_pretrained_da_16_75_25"
+SAVE_NAME="NutriFusionNet_resnet_2lstm_2attn_bert_pretrained_da_16_75_25"
 
 # Print the job configuration for logging purposes
 echo "Running model training with the following configuration:"

@@ -1,0 +1,15 @@
+Evaluation results for model: resnet saved as multimodal_resnet_2lstm_bert_pretrained_da_16_75_25
+
+Regression Loss (WMSE): 0.030208098653115724
+Classification Accuracy: 0.5038019042581328
+Precision: 0.06458769490360279
+Recall: 0.9618427175430433
+F1-Score: 0.12104708362614196
+
+Overall MAE: 26.58581329960279 (Improvement: 59.18%)
+calories: 74.11629702880155 (Improvement: 56.04%)
+mass: 42.18491380151949 (Improvement: 64.33%)
+fat: 4.26922763112153 (Improvement: 58.75%)
+carbs: 6.240837829002229 (Improvement: 55.13%)
+protein: 6.117790207569144 (Improvement: 57.92%)
+Overall Average Improvement: 58.56%
