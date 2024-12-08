@@ -9,7 +9,7 @@ sys.path.append('./')
 import numpy as np
 import torch
 import pandas as pd
-from models.models import BaselineModel, IngrPredModel, MultimodalPredictionNetwork
+from models.models import BaselineModel, IngrPredModel, MultimodalPredictionNetwork, SMEDN
 from utils.preprocess import prepare_test_loader, prepare_test_loader_ingr
 from torch import nn
 
@@ -321,7 +321,7 @@ def eval(model_type, model_backbone, save_name, embed_path, test_loader, log_min
     num_ingr = 199
     pretrained = False
     
-    if model_type == "multimodal" or "customized":
+    if model_type == "multimodal" or "customized" or 'smedn':
         embeddings = torch.load(f'./utils/data/ingredient_embeddings_{embed_path}.pt', map_location=device, weights_only=True)
 
         print(embeddings.shape)

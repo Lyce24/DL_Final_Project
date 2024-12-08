@@ -499,6 +499,117 @@ class MultimodalPredictionNetwork(nn.Module):
         # Mass prediction
         prediction = self.mlp(fused_features) # (batch_size, num_ingr)
         return prediction
+
+############################################################################################################
+'''
+Stacking Attention Encoder-Decoder Network
+'''
+
+class AttentionEncoderDecoderV2(nn.Module):
+    def __init__(self, num_heads, d_model, dropout=0.3, num_layers=3, epsilon=1e-6):
+        super(AttentionEncoderDecoderV2, self).__init__()
+        self.num_heads = num_heads
+        self.d_model = d_model
+        self.dropout = dropout
+        self.epsilon = epsilon
+        self.num_layers = num_layers
+        
+        # Define stacks of Ingredient Encoders and Dish Decoders
+        self.ingredient_encoders = nn.ModuleList([
+            nn.ModuleDict({
+                'self_attention': nn.MultiheadAttention(embed_dim=d_model, num_heads=num_heads, dropout=dropout),
+                'self_attention_norm': nn.LayerNorm(d_model, eps=epsilon),
+                'alignment': nn.Linear(d_model, d_model),
+                'encoding': nn.LayerNorm(d_model, eps=epsilon),
+            })
+            for _ in range(num_layers)
+        ])
+        
+        self.dish_image_decoders = nn.ModuleList([
+            nn.ModuleDict({
+                'guided_attention': nn.MultiheadAttention(embed_dim=d_model, num_heads=num_heads, dropout=dropout),
+                'guided_attention_norm': nn.LayerNorm(d_model, eps=epsilon),
+                'self_attention': nn.MultiheadAttention(embed_dim=d_model, num_heads=num_heads, dropout=dropout),
+                'self_attention_norm': nn.LayerNorm(d_model, eps=epsilon),
+                'alignment': nn.Linear(d_model, d_model),
+                'decoding': nn.LayerNorm(d_model, eps=epsilon),
+            })
+            for _ in range(num_layers)
+        ])
+
+    def forward(self, ingredients, dish_image):
+        # Encoder: Ingredients Self-Attention
+        
+        for i in range(self.num_layers):
+            # Ingredient Encoding
+            ingr_self_attn, _ = self.ingredient_encoders[i]['self_attention'](ingredients, ingredients, ingredients)
+            ingr_self_attn = self.ingredient_encoders[i]['self_attention_norm'](ingr_self_attn + ingredients)
+            ingr_aligned = F.relu(self.ingredient_encoders[i]['alignment'](ingr_self_attn))
+            ingr_encoded = self.ingredient_encoders[i]['encoding'](ingr_self_attn + ingr_aligned) # (num_ingr, d_model)
+
+            # Dish Image Decoding with Cross-Attention
+            dish_guided_attn, _ = self.dish_image_decoders[i]['guided_attention'](dish_image, ingr_encoded, ingr_encoded)
+            dish_guided_attn = self.dish_image_decoders[i]['guided_attention_norm'](dish_guided_attn + dish_image)
+            
+            # Dish Image self-attention
+            dish_self_attn, _ = self.dish_image_decoders[i]['self_attention'](dish_guided_attn, dish_guided_attn, dish_guided_attn)
+            dish_self_attn = self.dish_image_decoders[i]['self_attention_norm'](dish_self_attn + dish_guided_attn)
+            dish_aligned = F.relu(self.dish_image_decoders[i]['alignment'](dish_self_attn))
+            dish_decoded = self.dish_image_decoders[i]['decoding'](dish_self_attn + dish_aligned) # (batch_size, d_model)
+            
+            # Update the dish image features for the next layer
+            dish_image = dish_decoded
+            
+            # Update the ingredient features for the next layer
+            ingredients = ingr_encoded
+            
+
+        return ingr_encoded, dish_decoded
+        
+
+class SMEDAN(nn.Module):
+    def __init__(self, num_ingr = 199, backbone = "resnet", ingredient_embedding = None, pretrained = True, hidden_dim = 512, lstm_layers = 1, num_heads = 8, dropout = 0.3, epsilon = 1e-6, num_layers = 3):
+        super(SMEDAN, self).__init__()
+        
+        self.ingredient_embedding = ingredient_embedding
+        
+        self.ingredient_extractor = IngredientFeatureExtractor(embedding_dim=ingredient_embedding.size(1), hidden_dim=hidden_dim, lstm_layers=lstm_layers)
+        self.image_extractor = ImageFeatureExtractor(backbone=backbone, pretrained = pretrained, hidden_dim=hidden_dim)
+        
+        # Attention Encoder-Decoder
+        self.attn_enc_dec = AttentionEncoderDecoderV2(num_heads = num_heads, 
+                                                        d_model = hidden_dim, 
+                                                        dropout = dropout, 
+                                                        num_layers = 3, 
+                                                        epsilon = epsilon)
+        
+        self.fusion_layer = nn.Linear(hidden_dim * 2, hidden_dim)
+        
+        # Mass prediction
+        self.mlp = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.ReLU(),
+            nn.Linear(hidden_dim // 2, num_ingr),
+        )
+
+    def forward(self, images):
+        # Extract features
+        ingredient_embeddings = self.ingredient_embedding.unsqueeze(0).repeat(images.size(0), 1, 1)
+        ingredients_features = self.ingredient_extractor(ingredient_embeddings)
+        dish_image_features = self.image_extractor(images)
+                
+        # Attention Encoder-Decoder
+        ingredients_encoded, dish_image_decoded = self.attn_enc_dec(ingredients_features, dish_image_features)
+
+        # Global pooling
+        # Multimodal fusion
+        fused_features = torch.cat([ingredients_encoded, dish_image_decoded], dim=1) # (batch_size, d_model * 2)
+        fused_features = self.fusion_layer(fused_features) # (batch_size, d_model)
+
+        # Mass prediction
+        prediction = self.mlp(fused_features) # (batch_size, num_ingr)
+        return prediction
+
     
 ############################################################################################################
 if __name__ == "__main__":
@@ -534,6 +645,11 @@ if __name__ == "__main__":
     print("\nTesting the Multimoal Encoder-Decoder Network")
     embed = torch.randn(num_ingr, 768) # Assume 768-dimensional embeddings
     model = MultimodalPredictionNetwork(num_ingr, "vit", embed, hidden_dim=512)
+    output = model(x)
+    print(f"Output shape: {output.shape}")
+    
+    print("\nTesting the SMEDN")
+    model = SMEDAN(num_ingr, "vit", embed, hidden_dim=512)
     output = model(x)
     print(f"Output shape: {output.shape}")
     

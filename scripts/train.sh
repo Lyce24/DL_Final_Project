@@ -3,12 +3,12 @@
 # Slurm commands
 #SBATCH --partition=gpus             # Use the GPU partition
 #SBATCH --gres=gpu:1                 # Request No. of GPUs
-#SBATCH --nodelist=gpu1701           # Explicitly request GPUs
+#SBATCH --nodelist=gpu1705           # Explicitly request GPUs
 #SBATCH --time=24:00:00              # Maximum runtime
 #SBATCH --mem=24G                    # Memory allocation
-#SBATCH -J multimodal                      # Job name
-#SBATCH -o ./output/multimodal-%j.out      # Standard output
-#SBATCH -e ./output/multimodal-%j.err      # Standard error
+#SBATCH -J smedan                      # Job name
+#SBATCH -o ./output/smedan-%j.out      # Standard output
+#SBATCH -e ./output/smedan-%j.err      # Standard error
 
 # parser.add_argument('--model_type', type=str, required= True, help='Model Type (multimodal, bb_lstm, baseline)')
 # parser.add_argument('--model_backbone', type=str, required= True, help='Model Backbone (convlstm, vit, clv2, convnx)')
@@ -28,17 +28,18 @@
 
 # Run jobs in parallel, assigning specific GPUs using CUDA_VISIBLE_DEVICES
 # Define the arguments for the training script
-MODEL_TYPE="multimodal"
-MODEL_BACKBONE="vit"
-EMBED_PATH="gnn_gat"
+# MODEL_TYPE="multimodal", "bb_lstm", "baseline", "smedan"
+MODEL_TYPE="smedan"
+MODEL_BACKBONE="resnet"
+EMBED_PATH="gat_v2"
 PRETRAINED="True"
 LOG_MIN_MAX="False"
 DATA_AUGMENTATION="True"
 BATCH_SIZE=16
 EPOCHS=75
 PATIENCE=25
-# save_name = model_type + "_" + model_backbone + "_" + pretrained + "_" + log_min_max + "_" + da + "_" + batch_size + "_" + epochs
-SAVE_NAME="multimodal_vit_gnn_gat_pretrained_da_16_75_25"
+# save_name = model_type + "_" + model_backbone + "_" + embed_path + "_" + pretrained + "_" + log_min_max + "_" + da + "_" + batch_size + "_" + epochs + "_" + patience
+SAVE_NAME="smedan_resnet_gat_v2_pretrained_da_16_75_25"
 
 # Print the job configuration for logging purposes
 echo "Running model training with the following configuration:"
@@ -54,7 +55,7 @@ echo "Patience: $PATIENCE"
 echo "Save Name: $SAVE_NAME"
 
 # Run the Python training script with the specified arguments
-python ingr_train.py \
+python test_train.py \
     --model_type $MODEL_TYPE \
     --model_backbone $MODEL_BACKBONE \
     --embed_path $EMBED_PATH \

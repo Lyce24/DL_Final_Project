@@ -18,14 +18,15 @@
 # parser.add_argument('--s', type=str, required=False, help='Name of the file to save the results')
 
 # Test Tomorrow:
-# multimodal_resnet_gnn_pretrain_da_16_75_25, embedding = gnn
-# multimodal_resnet_pretrained_da_16_75_25, embedding = bert
-# multimodal_vit_pretrain_da_16_75_25, embedding = bert
-# multimodal_resnet_gat_pretrain_da_16_75_25, embedding = gnn_gat
-# customized_cnn_da_16_100
+# multimodal_vit_bert_pretrained_da_16_75_25, embedding = bert
+# multimodal_vit_gat_v2_pretrained_da_16_75_25, embedding = gat_v2
+# multimodal_resnet_concat_pretrained_da_16_75_25, embedding = concat
+# smedan_resnet_bert_pretrained_da_16_75_25, embedding = bert
+# smedan_resnet_gat_v2_pretrained_da_16_75_25, embedding = gat_v2
+# multimodal_resnet_2lstm_bert_pretrained_da_16_75_25, embedding = bert (later)
 
 # Single Job commands
-python ingr_eval.py --model_type multimodal --model_backbone resnet --model_name multimodal_resnet_gnn_gat_pretrained_da_16_75_25 --log_min_max False --batch_size 16 --embed_path gnn_gat
+python ingr_eval.py --model_type multimodal --model_backbone resnet --model_name multimodal_vit_bert_pretrained_da_16_75_25 --log_min_max False --batch_size 16 --embed_path bert
 
 # MultiJob commands
 # python ingr_eval.py --model_type customized --model_backbone cnn --model_name customized_cnn_da_16_100 --log_min_max False --batch_size 16 --embed_path bert &
@@ -34,6 +35,5 @@ python ingr_eval.py --model_type multimodal --model_backbone resnet --model_name
 # python ingr_eval.py --model_type multimodal --model_backbone resnet --model_name multimodal_resnet_gat_pretrained_da_16_75_25 --log_min_max False --batch_size 16 --embed_path gnn_gat &
 # python ingr_eval.py --model_type multimodal --model_backbone vit --model_name multimodal_vit_pretrained_da_16_75_25 --log_min_max False --batch_size 16 --embed_path bert &
 
-# # wait
 # wait
 
