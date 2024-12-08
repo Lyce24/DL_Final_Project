@@ -1,0 +1,16 @@
+Evaluation results for model: Paper_Method
+
+Overall MSE: 1.614346271674884
+calories: 0.3783615341312007
+mass: 0.281903508462404
+fat: 0.2914953678846359
+carb: 0.35895225876256037
+protein: 0.30363360243408305
+
+Overall MAE: 275.1992073460629 (Improvement: -322.53%)
+calories: 859.369787918894 (Improvement: -409.74%)
+mass: 440.49326203998766 (Improvement: -272.46%)
+fat: 25.71838213268079 (Improvement: -148.50%)
+carb: 14.814327741924085 (Improvement: -6.51%)
+protein: 35.6002768968281 (Improvement: -144.87%)
+Overall Average Improvement: -217.43%

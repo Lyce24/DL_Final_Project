@@ -9,7 +9,7 @@ sys.path.append('./')
 import numpy as np
 import torch
 import pandas as pd
-from models.models import BaselineModel, IngrPredModel, MultimodalPredictionNetwork, SMEDN
+from models.models import BaselineModel, IngrPredModel, MultimodalPredictionNetwork, SMEDAN
 from utils.preprocess import prepare_test_loader, prepare_test_loader_ingr
 from torch import nn
 
@@ -321,12 +321,15 @@ def eval(model_type, model_backbone, save_name, embed_path, test_loader, log_min
     num_ingr = 199
     pretrained = False
     
-    if model_type == "multimodal" or "customized" or 'smedn':
-        embeddings = torch.load(f'./utils/data/ingredient_embeddings_{embed_path}.pt', map_location=device, weights_only=True)
+    if model_type == "multimodal" or "customized" or "smedan":
+        embeddings = torch.load(f'./utils/embeddings/ingredient_embeddings_{embed_path}.pt', map_location=device, weights_only=True)
 
         print(embeddings.shape)
 
-    if model_type == "multimodal":
+    if model_type == "smedan":
+        if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
+            model = SMEDAN(num_ingr, model_backbone, embeddings, pretrained).to(device)
+    elif model_type == "multimodal":
         if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
             model = MultimodalPredictionNetwork(num_ingr, model_backbone, embeddings, pretrained, hidden_dim = 512).to(device)
     elif model_type == "bb_lstm":
