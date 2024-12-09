@@ -35,18 +35,22 @@
 # smedan_resnet_gat_v2_pretrained_da_16_75_25, embedding = gat_v2
 
 # Run later:
-# multimodal_resnet_2lstm_concat_pretrained_da_16_75_25, embedding = concat
-# multimodal_resnet_2lstm_gat_v2_pretrained_da_16_75_25, embedding = gat_v2
+# NutriFusionNet_resnet_2lstm_3attn_gat_v2_pretrained_da_16_75_25
+# NutriFusionNet_resnet_3lstm_3attn_gat_v2_pretrained_da_16_75_25
+# NutriFusionNet_resnet_3lstm_3attn_gat_v2_pretrained_da_16_75_25
+# NutriFusionNet_vit_2lstm_3attn_gat_v2_pretrained_da_16_75_25
+# NutriFusionNet_vit_3lstm_3attn_gat_v2_pretrained_da_16_75_25
+# NutriFusionNet_vit_3lstm_2attn_gat_v2_pretrained_da_16_75_25
 
 # Define the arguments for the evaluation script
 MODEL_TYPE="NutriFusionNet" # "NutriFusionNet", "bb_lstm", "baseline"
 MODEL_BACKBONE="resnet" # "resnet", "vit"
-MODEL_NAME="NutriFusionNet_resnet_2lstm_2attn_gat_v2_pretrained_da_16_75_25"
+MODEL_NAME="multimodal_resnet_2lstm_gat_v2_pretrained_da_16_75_25"
 LOG_MIN_MAX="False"
 BATCH_SIZE=16
 EMBED_PATH="gat_v2"
 LSTM_LAYERS=2
-ATTN_LAYERS=2
+ATTN_LAYERS=1
 
 # Print the job configuration for logging purposes
 echo "Running model evaluation with the following configuration:"

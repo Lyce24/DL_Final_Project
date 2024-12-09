@@ -1,0 +1,15 @@
+Evaluation results for model: vit saved as multimodal_vit_gat_v2_pretrained_da_16_75_25
+
+Regression Loss (WMSE): 0.036381711595152556
+Classification Accuracy: 0.5083145993123512
+Precision: 0.06508857088823047
+Recall: 0.9609120521172638
+F1-Score: 0.12191881918819188
+
+Overall MAE: 27.368606246065593 (Improvement: 57.98%)
+calories: 75.5577215662423 (Improvement: 55.18%)
+mass: 43.9587181222282 (Improvement: 62.83%)
+fat: 4.259312844263144 (Improvement: 58.85%)
+carbs: 6.656873922221951 (Improvement: 52.14%)
+protein: 6.410404775372382 (Improvement: 55.91%)
+Overall Average Improvement: 57.15%

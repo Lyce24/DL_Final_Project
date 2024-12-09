@@ -103,59 +103,11 @@ class EfficientNetBackbone(nn.Module):
     
 ############################################################################################################
 '''
-Method from Nutrition5k Paper. (https://arxiv.org/pdf/2103.03375)
-Difference From the Paper:
-- The paper uses 3 tasks: calories, macronutrients, and mass while we use 5 tasks: calories, mass, fat, carb, and protein.
-- The paper uses InceptionV2 as the backbone while we use the updated version InceptionV3.
-- The paper utilizes the mixed5c layer for feature extraction while we use the output of the backbone.
-- The paper doesn't mention the activation function for the task-specific heads while we use ReLU.
-- The paper doesn't normalize the labels while we normalize the labels using log1p.
-- The paper uses a different optimizer and loss function.
-
-We include this model for comparison purposes.
-'''
-
-class PaperModel(nn.Module):
-    def __init__(self, tasks : List[str]):
-        """
-        Args:
-            num_tasks: Number of tasks (calories, macronutrients, and mass).
-        """
-        super(PaperModel, self).__init__()
-        self.backbone = InceptionV3(pretrained=True)
-        
-        # Shared image feature layers
-        self.shared_fc1 = nn.Linear(2048, 4096) # Use 2048 as input size as InceptionV3 has 2048 output features
-        self.shared_fc2 = nn.Linear(4096, 4096)
-        
-        # Task-specific heads
-        self.task_heads = nn.ModuleDict({
-            task: nn.Sequential(
-                nn.Linear(4096, 4096), # work as FC 3
-                nn.ReLU(),
-                nn.Linear(4096, 1) # work as FC 4
-            ) for task in tasks
-        })
-
-    def forward(self, image):
-        # Process the image through the backbone
-        image_features = self.backbone(image)
-                
-        image_features = nn.functional.relu(self.shared_fc1(image_features))
-        image_features = nn.functional.relu(self.shared_fc2(image_features))
-        
-        # Pass through task-specific heads
-        outputs = {task: head(image_features) for task, head in self.task_heads.items()}        
-        return outputs
-
-############################################################################################################
-'''
 For Ingredient + Mass Prediction (Regression)
 - Our Implementation of Mass Prediction Model
     - BaselineModel: CNN-based model for mass prediction
     - IngrPredModel: Pretrained backbone-based + LSTM-based model for ingredient prediction
-    - MultimodalPredictionNetwork: Multimodal Encoder-Decoder Network
-    - SMEDAN: Stacking Attention Encoder-Decoder Network
+    - NutriFusionNet: Stacking Attention Encoder-Decoder Network for ingredient prediction
 '''
 
 class BaselineModel(nn.Module):
@@ -485,17 +437,10 @@ class NutriFusionNet(nn.Module):
 ############################################################################################################
 if __name__ == "__main__":
     x = torch.randn(16, 3, 224, 224) # For ConvLSTM model and ViT model
-    y = torch.randn(16, 3, 299, 299) # For InceptionV3 model
     num_ingr = 199
 
     embed = torch.randn(num_ingr, 768) # Assume 768-dimensional embeddings
     tasks = ["calories", "mass", "fat", "carb", "protein"]
-    
-    print("Testing the Papermodel")
-    model = PaperModel(tasks=tasks)
-    outputs = model(y)
-    for task, output in outputs.items():
-        print(f"{task}: {output.size()}")
         
     print("\nTesting the BaselineModel")
     test_model = BaselineModel(num_ingr)

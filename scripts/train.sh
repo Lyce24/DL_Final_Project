@@ -3,7 +3,7 @@
 # Slurm commands
 #SBATCH --partition=gpus             # Use the GPU partition
 #SBATCH --gres=gpu:1                 # Request No. of GPUs
-#SBATCH --nodelist=gpu1701           # Explicitly request GPUs
+#SBATCH --nodelist=gpu1703           # Explicitly request GPUs
 #SBATCH --time=24:00:00              # Maximum runtime
 #SBATCH --mem=24G                    # Memory allocation
 #SBATCH -J NutriFusionNetV2                      # Job name
@@ -30,8 +30,8 @@
 # Define the arguments for the training script
 # MODEL_TYPE="bb_lstm", "baseline", "NutriFusionNet"
 MODEL_TYPE="NutriFusionNet"
-MODEL_BACKBONE="vit"
-EMBED_PATH="bert"
+MODEL_BACKBONE="resnet"
+EMBED_PATH="gat_v2"
 PRETRAINED="True"
 LOG_MIN_MAX="False"
 DATA_AUGMENTATION="True"
@@ -39,10 +39,10 @@ BATCH_SIZE=16
 EPOCHS=75
 PATIENCE=25
 LSTM_LAYERS=2
-ATTN_LAYERS=2
+ATTN_LAYERS=3
 
 # save_name = model_type + "_" + model_backbone + "_" + embed_path + "_" + pretrained + "_" + log_min_max + "_" + da + "_" + batch_size + "_" + epochs + "_" + patience
-SAVE_NAME="NutriFusionNet_vit_2lstm_2attn_bert_pretrained_da_16_75_25"
+SAVE_NAME="NutriFusionNet_resnet_2lstm_3attn_gat_v2_pretrained_da_16_75_25"
 
 # Print the job configuration for logging purposes
 echo "Running model training with the following configuration:"

@@ -1,0 +1,15 @@
+Evaluation results for model: resnet saved as NutriFusionNet_resnet_2attn_bert_pretrained_da_16_75_25
+
+Regression Loss (WMSE): 0.03088620844248094
+Classification Accuracy: 0.5105130917746628
+Precision: 0.06604936320829251
+Recall: 0.9725453699395068
+F1-Score: 0.12369791666666664
+
+Overall MAE: 26.97313162362265 (Improvement: 58.59%)
+calories: 71.49123284367212 (Improvement: 57.59%)
+mass: 46.68582686821097 (Improvement: 60.53%)
+fat: 4.101109554760207 (Improvement: 60.37%)
+carbs: 6.442009948002859 (Improvement: 53.68%)
+protein: 6.145478903467089 (Improvement: 57.73%)
+Overall Average Improvement: 58.08%
