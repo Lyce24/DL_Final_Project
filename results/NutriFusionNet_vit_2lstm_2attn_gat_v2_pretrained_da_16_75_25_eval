@@ -1,15 +1,16 @@
-Evaluation results for model: vit saved as NutriFusionNet_vit_2lstm_2attn_gat_v2_pretrained_da_16_75_25
+Evaluating model: NutriFusionNet with vit backbone saved as NutriFusionNet_vit_2lstm_2attn_gat_v2_pretrained_da_16_75_25
 
+Threshold: 0.15
 Regression Loss (WMSE): 0.03471309544616624
-Classification Accuracy: 0.49398307326104207
-Precision: 0.06276690528126824
-Recall: 0.95067473243369
-F1-Score: 0.11775894864257307
+Classification Accuracy: 0.8712311557788944
+Precision: 0.19985101628179205
+Recall: 0.8738948348068869
+F1-Score: 0.3253074657890178
 
-Overall MAE: 25.74263463530899 (Improvement: 60.48%)
-calories: 67.16488318888317 (Improvement: 60.16%)
-mass: 45.8118297347897 (Improvement: 61.26%)
-fat: 3.7641496270530808 (Improvement: 63.63%)
-carbs: 5.730319201020624 (Improvement: 58.80%)
-protein: 6.2419914247984165 (Improvement: 57.07%)
-Overall Average Improvement: 60.23%
+Overall MAE: 25.48734737682003 (Improvement: 60.87%)
+calories: 66.28693880549605 (Improvement: 60.68%)
+mass: 45.680910997092724 (Improvement: 61.37%)
+fat: 3.6966959906856203 (Improvement: 64.28%)
+carbs: 5.570268578815422 (Improvement: 59.95%)
+protein: 6.201922512010288 (Improvement: 57.34%)
+Overall Average Improvement: 60.75%

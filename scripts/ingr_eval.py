@@ -131,7 +131,7 @@ def ingredient_loss(outputs, targets, mask, alpha=0.9):
 
     return weighted_mse
 
-def test_model_ingr(model, dataloader, device):
+def test_model_ingr(model, dataloader, device, threshold):
     """    
     Args:
         model (torch.nn.Module): Trained model to evaluate.
@@ -165,7 +165,7 @@ def test_model_ingr(model, dataloader, device):
             
             ### Measure Classification Accuracy ###
             ### Precision, Recall, F1 Score ###
-            predicted = (outputs > 0.0).float().cpu().numpy()
+            predicted = (outputs > threshold).float().cpu().numpy()
             targets_classification = targets[0].cpu().numpy()
                     
             total_correct += np.sum(predicted == targets_classification)
@@ -194,7 +194,7 @@ def test_model_ingr(model, dataloader, device):
 Test MAE performance and Specific MAE for each task
 For Ingredient dataset, we also calculate classification accuracy
 ''' 
-def test_model_ingr_mae(model, dataloader, log_min_max, device):
+def test_model_ingr_mae(model, dataloader, log_min_max, device, threshold):
     model.eval()  # Set the model to evaluation mode
     
     tasks = ["calories", "mass", "fat", "carbs", "protein"]
@@ -224,7 +224,7 @@ def test_model_ingr_mae(model, dataloader, log_min_max, device):
         # outputs = (batch_size, 199)
         for batch_idx in range(outputs.shape[0]):
             # Find the indices of all non-zero ingredients
-            idx = np.where(outputs[batch_idx] > 0.0)[0]
+            idx = np.where(outputs[batch_idx] > threshold)[0]
             
             if len(idx) == 0:
                 print("No ingredients found for this sample")
@@ -316,7 +316,7 @@ def test_model_ingr_mae(model, dataloader, log_min_max, device):
     
 
 ############################################################################################################
-def eval(model_type, model_backbone, save_name, embed_path, test_loader, log_min_max, s, device, lstm_layers, attn_layers):
+def eval(model_type, model_backbone, save_name, embed_path, test_loader, log_min_max, s, device, lstm_layers, attn_layers, threshold):
     ######## LOAD MODEL ########
     num_ingr = 199
     pretrained = False
@@ -339,10 +339,11 @@ def eval(model_type, model_backbone, save_name, embed_path, test_loader, log_min
     model_path = f'./models/checkpoints/{save_name}.pth'
     model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     
-    print(f"Evaluating model: {model_type} with {model_backbone} backbone saved as {save_name}\n")
+    print(f"Evaluating model: {model_type} with {model_backbone} backbone saved as {save_name}")
+    print(f"Threshold: {threshold}\n")
 
     ######## EVALUATION ########
-    overall_regression_loss, classification_accuracy, precision, recall, f1_score = test_model_ingr(model, test_loader, device)
+    overall_regression_loss, classification_accuracy, precision, recall, f1_score = test_model_ingr(model, test_loader, device, threshold)
     print(f"Regression Loss (WMSE): {overall_regression_loss}\nClassification Accuracy: {classification_accuracy}\nPrecision: {precision}\nRecall: {recall}\nF1-Score: {f1_score}\n")
     
     # baseline mae
@@ -355,7 +356,7 @@ def eval(model_type, model_backbone, save_name, embed_path, test_loader, log_min
         'protein': 14.53827823355263
     }
 
-    results = test_model_ingr_mae(model, nutrition_loader, log_min_max, device)
+    results = test_model_ingr_mae(model, nutrition_loader, log_min_max, device, threshold)
     overall_improvement_percentage = 0.0
     overall_mae_improvement = (baseline_mae_dict['overall_mae'] - results['overall_mae']) / baseline_mae_dict['overall_mae'] * 100
     overall_improvement_percentage += overall_mae_improvement
@@ -370,6 +371,7 @@ def eval(model_type, model_backbone, save_name, embed_path, test_loader, log_min
     save_dir = './results/'
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
+
     if s:
         save_path = os.path.join(save_dir, f'{s}')
     else:
@@ -377,41 +379,81 @@ def eval(model_type, model_backbone, save_name, embed_path, test_loader, log_min
                 
     with open(save_path, 'w') as f:
         f.write(f'Evaluation results for model: {model_backbone} saved as {save_name}\n\n')
+        f.write(f"Threshold: {threshold}\n")
         f.write(f"Regression Loss (WMSE): {overall_regression_loss}\nClassification Accuracy: {classification_accuracy}\nPrecision: {precision}\nRecall: {recall}\nF1-Score: {f1_score}\n")
         f.write('\n')
         f.write(f"Overall MAE: {results['overall_mae']} (Improvement: {overall_mae_improvement:.2f}%)\n")
         for task in results['task_mae'].keys():
             f.write(f"{task}: {results['task_mae'][task]} (Improvement: {(baseline_mae_dict[task] - results['task_mae'][task]) / baseline_mae_dict[task] * 100:.2f}%)\n")
         f.write(f"Overall Average Improvement: {overall_improvement_percentage / 6:.2f}%")
-        
+    
+    return overall_regression_loss, classification_accuracy, precision, recall, f1_score, results, overall_improvement_percentage / 6
+
+def eval_all_models(model_type, model_backbones, embed_path, device, lstm_layers, attn_layers, thresholds):
+    test_set = perpare_data('resnet', 16, False)
+    
+    results = {}
+    for model_backbone in model_backbones:
+        for lstm_layer in lstm_layers:
+            for attn_layer in attn_layers:
+                for threshold in thresholds:
+                    # NutriFusionNet_vit_3lstm_2attn_gat_v2_pretrained_da_16_75_25_eval
+                    save_name = f"{model_type}_{model_backbone}_{lstm_layer}lstm_{attn_layer}attn_{embed_path}_pretrained_da_16_75_25"
+                    dict_name = save_name + + "_" + str(threshold)
+                    regression_loss, classification_accuracy, precision, recall, f1_score, ingr_results, improvement = eval(model_type, model_backbone, save_name, embed_path, test_set, False, "all", device, lstm_layer, attn_layer, threshold)
+                    results[dict_name] = {
+                        'regression_loss': regression_loss,
+                        'classification_accuracy': classification_accuracy,
+                        'precision': precision,
+                        'recall': recall,
+                        'f1_score': f1_score,
+                        'ingredient_results': ingr_results,
+                        'overall_improvement': improvement
+                    }
+    return results
+
 if __name__ == "__main__":
-    import argparse
+    # import argparse
 
-    def str2bool(v):
-        if isinstance(v, bool):
-            return v
-        if v.lower() in ('yes', 'true', 't', 'y', '1'):
-            return True
-        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-            return False
-        else:
-            raise argparse.ArgumentTypeError('Boolean value expected.')
+    # def str2bool(v):
+    #     if isinstance(v, bool):
+    #         return v
+    #     if v.lower() in ('yes', 'true', 't', 'y', '1'):
+    #         return True
+    #     elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+    #         return False
+    #     else:
+    #         raise argparse.ArgumentTypeError('Boolean value expected.')
 
-    # parse arguments
-    parser = argparse.ArgumentParser(description='Train a model')
-    parser.add_argument('--model_type', type=str, required=True, help='Type of the model')
-    parser.add_argument('--model_backbone', type=str, required= True, help='Model to eval')
-    parser.add_argument('--model_name', type=str, required=True, help='Name of the model checkpoint to save')
-    parser.add_argument('--log_min_max', type=str2bool, required= False, default=False, help='Used log min-max values')
-    parser.add_argument('--batch_size', type=int, required=False, default=16, help='Batch size for evaluation')
-    parser.add_argument('--embed_path', type=str, required=False, default='bert', help='Path to the ingredient embeddings')
-    parser.add_argument('--s', type=str, required=False, help='Name of the file to save the results')
-    parser.add_argument('--lstm_layers', type=int, required=False, default=1, help='Number of LSTM layers')
-    parser.add_argument('--attn_layers', type=int, required=False, default=1, help='Number of Attention layers')
+    # # parse arguments
+    # parser = argparse.ArgumentParser(description='Train a model')
+    # parser.add_argument('--model_type', type=str, required=True, help='Type of the model')
+    # parser.add_argument('--model_backbone', type=str, required= True, help='Model to eval')
+    # parser.add_argument('--model_name', type=str, required=True, help='Name of the model checkpoint to save')
+    # parser.add_argument('--log_min_max', type=str2bool, required= False, default=False, help='Used log min-max values')
+    # parser.add_argument('--batch_size', type=int, required=False, default=16, help='Batch size for evaluation')
+    # parser.add_argument('--embed_path', type=str, required=False, default='bert', help='Path to the ingredient embeddings')
+    # parser.add_argument('--s', type=str, required=False, help='Name of the file to save the results')
+    # parser.add_argument('--lstm_layers', type=int, required=False, default=1, help='Number of LSTM layers')
+    # parser.add_argument('--attn_layers', type=int, required=False, default=1, help='Number of Attention layers')
+    # parser.add_argument('--threshold', type=float, required=False, default=0.0, help='Threshold for classification')
     
-    args = parser.parse_args()
+    # args = parser.parse_args()
     
-    test_set = perpare_data(args.model_backbone, args.batch_size, args.log_min_max)
+    # test_set = perpare_data(args.model_backbone, args.batch_size, args.log_min_max)
 
-    # Evaluate the model
-    eval(args.model_type, args.model_backbone, args.model_name, args.embed_path, test_set, args.log_min_max, args.s, device, args.lstm_layers, args.attn_layers)
+    # # Evaluate the model
+    # eval(args.model_type, args.model_backbone, args.model_name, args.embed_path, test_set, args.log_min_max, args.s, device, args.lstm_layers, args.attn_layers, args.threshold)
+        
+    model_backbones = ['resnet', 'vit']
+    lstm_layers = [2]
+    attn_layers = [2]
+    thresholds = [0.13, 0.14, 0.15]
+    
+    results = eval_all_models('NutriFusionNet', model_backbones, 'gat_v2', device, lstm_layers, attn_layers, thresholds)
+    print(results)
+    
+    with open('./results/NutriFusionNet_eval_results.csv', 'w') as f:
+        f.write("model_parameters,regression_loss,classification_accuracy,precision,recall,f1_score,calories_mae,mass_mae,fat_mae,carbs_mae,protein_mae,overall_improvement\n")
+        for key, value in results.items():
+            f.write(f"{key},{value['regression_loss']:.2f},{value['classification_accuracy']:.2f},{value['precision']:.2f},{value['recall']:.2f},{value['f1_score']:.2f},{value['ingredient_results']['task_mae']['calories']:.2f},{value['ingredient_results']['task_mae']['mass']:.2f},{value['ingredient_results']['task_mae']['fat']:.2f},{value['ingredient_results']['task_mae']['carbs']:.2f},{value['ingredient_results']['task_mae']['protein']:.2f},{value['overall_improvement']:.2f}\n")

@@ -73,3 +73,5 @@ models/test_models.ipynb
 itm.py
 
 scripts/test*
+results/all
+results/NutriFusionNet_eval_results.csv

@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import filedialog
 from PIL import Image, ImageTk
 import torch
-from models.models import BaselineModel, IngrPredModel, NutriFusionNet
+from models.models import NutriFusionNet
 from torchvision import transforms
 import os
 import pandas as pd
@@ -13,8 +13,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #============== Load the model ==============#
 embeddings = torch.load(f'./utils/embeddings/ingredient_embeddings_gat_v2.pt', map_location=device, weights_only=True)
 
-model = NutriFusionNet(num_ingr=199, backbone='resnet', ingredient_embedding=embeddings, hidden_dim=512, lstm_layers=2, num_layers=2).to(device)
-model.load_state_dict(torch.load("models/checkpoints/NutriFusionNet_resnet_2lstm_2attn_gat_v2_pretrained_da_16_75_25.pth", map_location=device, weights_only=True))
+model = NutriFusionNet(num_ingr=199, backbone='vit', ingredient_embedding=embeddings, hidden_dim=512, lstm_layers=2, num_layers=2).to(device)
+model.load_state_dict(torch.load("models/checkpoints/NutriFusionNet_vit_2lstm_2attn_gat_v2_pretrained_da_16_75_25.pth", map_location=device, weights_only=True))
 
 # Preprocess the image
 transform = transforms.Compose([
@@ -64,7 +64,7 @@ def calculate_ingrdients_and_nutritional_facts(outputs, ingr_dict, ingr_index, k
     sample_protein = 0
     top_k_ingr = []
     
-    idx = np.where(outputs > 0.0)[0]
+    idx = np.where(outputs > 0.15)[0]
     if len(idx) != 0:
         # Dictionary to store ingredient mass for top k selection
         ingredient_masses = {}

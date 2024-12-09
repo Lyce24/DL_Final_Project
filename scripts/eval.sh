@@ -3,7 +3,7 @@
 # Slurm commands
 #SBATCH --partition=gpus             # Use the GPU partition
 #SBATCH --gres=gpu:1                 # Request 3 GPUs
-#SBATCH --time=01:00:00              # Maximum runtime
+#SBATCH --time=12:00:00              # Maximum runtime
 #SBATCH --mem=6G                     # Memory allocation
 #SBATCH -J Eval                      # Job name
 #SBATCH -o ./output/eval-%j.out  # Standard output
@@ -42,41 +42,47 @@
 # NutriFusionNet_vit_3lstm_3attn_gat_v2_pretrained_da_16_75_25
 # NutriFusionNet_vit_3lstm_2attn_gat_v2_pretrained_da_16_75_25
 
-# Define the arguments for the evaluation script
-MODEL_TYPE="NutriFusionNet" # "NutriFusionNet", "bb_lstm", "baseline"
-MODEL_BACKBONE="resnet" # "resnet", "vit"
-MODEL_NAME="multimodal_resnet_2lstm_gat_v2_pretrained_da_16_75_25"
-LOG_MIN_MAX="False"
-BATCH_SIZE=16
-EMBED_PATH="gat_v2"
-LSTM_LAYERS=2
-ATTN_LAYERS=1
+# # Define the arguments for the evaluation script
+# MODEL_TYPE="NutriFusionNet" # "NutriFusionNet", "bb_lstm", "baseline"
+# MODEL_BACKBONE="vit" # "resnet", "vit"
+# MODEL_NAME="NutriFusionNet_vit_2lstm_2attn_gat_v2_pretrained_da_16_75_25"
+# LOG_MIN_MAX="False"
+# BATCH_SIZE=16
+# EMBED_PATH="gat_v2"
+# LSTM_LAYERS=2
+# ATTN_LAYERS=2
+# THRESHOLD=0.2
 
-# Print the job configuration for logging purposes
-echo "Running model evaluation with the following configuration:"
-echo "Model Type: $MODEL_TYPE"
-echo "Model Backbone: $MODEL_BACKBONE"
-echo "Model Name: $MODEL_NAME"
-echo "Log Min Max: $LOG_MIN_MAX"
-echo "Batch Size: $BATCH_SIZE"
-echo "Embed Path: $EMBED_PATH"
-echo "LSTM Layers: $LSTM_LAYERS"
-echo "Attention Layers: $ATTN_LAYERS"
+# # Print the job configuration for logging purposes
+# echo "Running model evaluation with the following configuration:"
+# echo "Model Type: $MODEL_TYPE"
+# echo "Model Backbone: $MODEL_BACKBONE"
+# echo "Model Name: $MODEL_NAME"
+# echo "Log Min Max: $LOG_MIN_MAX"
+# echo "Batch Size: $BATCH_SIZE"
+# echo "Embed Path: $EMBED_PATH"
+# echo "LSTM Layers: $LSTM_LAYERS"
+# echo "Attention Layers: $ATTN_LAYERS"
+# echo "Threshold: $THRESHOLD"
 
-# Run the Python evaluation script with the specified arguments
-python ingr_eval.py \
-    --model_type $MODEL_TYPE \
-    --model_backbone $MODEL_BACKBONE \
-    --model_name $MODEL_NAME \
-    --log_min_max $LOG_MIN_MAX \
-    --batch_size $BATCH_SIZE \
-    --embed_path $EMBED_PATH \
-    --lstm_layers $LSTM_LAYERS \
-    --attn_layers $ATTN_LAYERS \
+# # Run the Python evaluation script with the specified arguments
+# python ingr_eval.py \
+#     --model_type $MODEL_TYPE \
+#     --model_backbone $MODEL_BACKBONE \
+#     --model_name $MODEL_NAME \
+#     --log_min_max $LOG_MIN_MAX \
+#     --batch_size $BATCH_SIZE \
+#     --embed_path $EMBED_PATH \
+#     --lstm_layers $LSTM_LAYERS \
+#     --attn_layers $ATTN_LAYERS \
+#     --threshold $THRESHOLD
 
 # MultiJob commands
 # python ingr_eval.py --model_type multimodal --model_backbone vit --model_name multimodal_vit_bert_pretrained_da_16_75_25 --log_min_max False --batch_size 16 --embed_path bert &
 # python ingr_eval.py --model_type multimodal --model_backbone vit --model_name multimodal_vit_gat_v2_pretrained_da_16_75_25 --log_min_max False --batch_size 16 --embed_path gat_v2 &
+
+# Run ALL MODELS
+python ingr_eval.py
 
 # wait
 

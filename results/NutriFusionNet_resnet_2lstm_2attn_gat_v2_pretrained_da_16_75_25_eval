@@ -1,15 +1,16 @@
-Evaluation results for model: resnet saved as NutriFusionNet_resnet_2lstm_2attn_gat_v2_pretrained_da_16_75_25
+Evaluating model: NutriFusionNet with resnet backbone saved as NutriFusionNet_resnet_2lstm_2attn_gat_v2_pretrained_da_16_75_25
 
+Threshold: 0.15
 Regression Loss (WMSE): 0.03153715856177242
-Classification Accuracy: 0.5058185665167945
-Precision: 0.06518945685899646
-Recall: 0.9678920428106096
-F1-Score: 0.12215175005872682
+Classification Accuracy: 0.8894968262364454
+Precision: 0.22838323353293413
+Recall: 0.8873894834806887
+F1-Score: 0.363272692637394
 
-Overall MAE: 25.803490848035246 (Improvement: 60.38%)
-calories: 71.91501935945617 (Improvement: 57.34%)
-mass: 41.0982981073229 (Improvement: 65.25%)
-fat: 4.119429612019 (Improvement: 60.20%)
-carbs: 5.941514189565848 (Improvement: 57.28%)
-protein: 5.943192971812347 (Improvement: 59.12%)
-Overall Average Improvement: 59.93%
+Overall MAE: 25.764076581475628 (Improvement: 60.44%)
+calories: 71.7369500699466 (Improvement: 57.45%)
+mass: 41.288639392507704 (Improvement: 65.09%)
+fat: 4.0481474718601 (Improvement: 60.89%)
+carbs: 5.815134555623131 (Improvement: 58.19%)
+protein: 5.931511417440677 (Improvement: 59.20%)
+Overall Average Improvement: 60.21%

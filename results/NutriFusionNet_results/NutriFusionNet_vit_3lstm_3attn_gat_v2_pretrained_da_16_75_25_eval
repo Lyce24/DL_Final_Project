@@ -1,0 +1,15 @@
+Evaluation results for model: vit saved as NutriFusionNet_vit_3lstm_3attn_gat_v2_pretrained_da_16_75_25
+
+Regression Loss (WMSE): 0.03624276297264978
+Classification Accuracy: 0.5091906902935731
+Precision: 0.0651425684423253
+Recall: 0.9599813866914844
+F1-Score: 0.12200603229049618
+
+Overall MAE: 25.451367238917612 (Improvement: 60.92%)
+calories: 68.74927852775822 (Improvement: 59.22%)
+mass: 42.02382686694986 (Improvement: 64.47%)
+fat: 4.12130075787993 (Improvement: 60.18%)
+carbs: 6.726265080001595 (Improvement: 51.64%)
+protein: 5.636164961998398 (Improvement: 61.23%)
+Overall Average Improvement: 59.61%
