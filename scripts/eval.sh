@@ -41,10 +41,10 @@
 # Define the arguments for the evaluation script
 MODEL_TYPE="NutriFusionNet" # "NutriFusionNet", "bb_lstm", "baseline"
 MODEL_BACKBONE="resnet" # "resnet", "vit"
-MODEL_NAME="NutriFusionNet_resnet_2lstm_2attn_bert_pretrained_da_16_75_25"
+MODEL_NAME="NutriFusionNet_resnet_2lstm_2attn_gat_v2_pretrained_da_16_75_25"
 LOG_MIN_MAX="False"
 BATCH_SIZE=16
-EMBED_PATH="bert"
+EMBED_PATH="gat_v2"
 LSTM_LAYERS=2
 ATTN_LAYERS=2
 
@@ -68,7 +68,7 @@ python ingr_eval.py \
     --batch_size $BATCH_SIZE \
     --embed_path $EMBED_PATH \
     --lstm_layers $LSTM_LAYERS \
-    --attn_layers $ATTN_LAYERS
+    --attn_layers $ATTN_LAYERS \
 
 # MultiJob commands
 # python ingr_eval.py --model_type multimodal --model_backbone vit --model_name multimodal_vit_bert_pretrained_da_16_75_25 --log_min_max False --batch_size 16 --embed_path bert &

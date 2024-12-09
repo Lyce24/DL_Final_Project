@@ -3,12 +3,12 @@
 # Slurm commands
 #SBATCH --partition=gpus             # Use the GPU partition
 #SBATCH --gres=gpu:1                 # Request No. of GPUs
-#SBATCH --nodelist=gpu1703           # Explicitly request GPUs
+#SBATCH --nodelist=gpu1701           # Explicitly request GPUs
 #SBATCH --time=24:00:00              # Maximum runtime
 #SBATCH --mem=24G                    # Memory allocation
-#SBATCH -J NutriFusionNet                      # Job name
-#SBATCH -o ./output/NutriFusionNet-%j.out      # Standard output
-#SBATCH -e ./output/NutriFusionNet-%j.err      # Standard error
+#SBATCH -J NutriFusionNetV2                      # Job name
+#SBATCH -o ./output/NutriFusionNetV2-%j.out      # Standard output
+#SBATCH -e ./output/NutriFusionNetV2-%j.err      # Standard error
 
 # parser = argparse.ArgumentParser(description='Train a model')
 # parser.add_argument('--model_type', type=str, required= True, help='Model Type (multimodal, bb_lstm, baseline)')
@@ -24,22 +24,25 @@
 # parser.add_argument('--patience', type=int, default=10, help='Patience for early stopping')
 # parser.add_argument('--lstm_layers', type=int, required=False, default=1, help='Number of LSTM layers')
 # parser.add_argument('--attn_layers', type=int, required=False, default=1, help='Number of Attention layers')
+# parser.add_argument('--fusion', type=str, required=False, default='concat', help='Fusion method for multimodal model')
+# parser.add_argument('--task_heads', type=int, required=False, default=1, help='Number of task heads for multimodal model')
 
 # Define the arguments for the training script
 # MODEL_TYPE="bb_lstm", "baseline", "NutriFusionNet"
 MODEL_TYPE="NutriFusionNet"
-MODEL_BACKBONE="resnet"
-EMBED_PATH="concat"
+MODEL_BACKBONE="vit"
+EMBED_PATH="bert"
 PRETRAINED="True"
 LOG_MIN_MAX="False"
 DATA_AUGMENTATION="True"
 BATCH_SIZE=16
 EPOCHS=75
 PATIENCE=25
-LSTM_LAYERS=1
+LSTM_LAYERS=2
 ATTN_LAYERS=2
+
 # save_name = model_type + "_" + model_backbone + "_" + embed_path + "_" + pretrained + "_" + log_min_max + "_" + da + "_" + batch_size + "_" + epochs + "_" + patience
-SAVE_NAME="NutriFusionNet_resnet_2attn_concat_pretrained_da_16_75_25"
+SAVE_NAME="NutriFusionNet_vit_2lstm_2attn_bert_pretrained_da_16_75_25"
 
 # Print the job configuration for logging purposes
 echo "Running model training with the following configuration:"
@@ -69,4 +72,4 @@ python test_train.py \
     --patience $PATIENCE \
     --save_name $SAVE_NAME \
     --lstm_layers $LSTM_LAYERS \
-    --attn_layers $ATTN_LAYERS
+    --attn_layers $ATTN_LAYERS 

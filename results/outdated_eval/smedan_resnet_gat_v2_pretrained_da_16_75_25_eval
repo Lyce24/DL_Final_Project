@@ -1,0 +1,15 @@
+Evaluation results for model: resnet saved as smedan_resnet_gat_v2_pretrained_da_16_75_25
+
+Regression Loss (WMSE): 0.03181069491333083
+Classification Accuracy: 0.47642819359957683
+Precision: 0.061800587728932294
+Recall: 0.968822708236389
+F1-Score: 0.11618951950443664
+
+Overall MAE: 28.273951282022765 (Improvement: 56.59%)
+calories: 77.91281085804192 (Improvement: 53.79%)
+mass: 45.773864916672835 (Improvement: 61.30%)
+fat: 4.551483649260952 (Improvement: 56.02%)
+carbs: 6.841605699612317 (Improvement: 50.81%)
+protein: 6.289991286525836 (Improvement: 56.73%)
+Overall Average Improvement: 55.87%

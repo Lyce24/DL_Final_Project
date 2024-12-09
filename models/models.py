@@ -481,13 +481,14 @@ class NutriFusionNet(nn.Module):
         # Mass prediction
         prediction = self.mlp(fused_features) # (batch_size, num_ingr)
         return prediction
-
     
 ############################################################################################################
 if __name__ == "__main__":
     x = torch.randn(16, 3, 224, 224) # For ConvLSTM model and ViT model
     y = torch.randn(16, 3, 299, 299) # For InceptionV3 model
     num_ingr = 199
+
+    embed = torch.randn(num_ingr, 768) # Assume 768-dimensional embeddings
     tasks = ["calories", "mass", "fat", "carb", "protein"]
     
     print("Testing the Papermodel")
@@ -506,7 +507,6 @@ if __name__ == "__main__":
     output = model(x)
     print(f"Output shape: {output.shape}")       
 
-    embed = torch.randn(num_ingr, 768) # Assume 768-dimensional embeddings
     print("\nTesting the NutriFusionNet")
     model = NutriFusionNet(num_ingr, "vit", embed, hidden_dim=512)
     output = model(x)
