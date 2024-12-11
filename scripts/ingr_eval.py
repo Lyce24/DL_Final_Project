@@ -316,18 +316,18 @@ def test_model_ingr_mae(model, dataloader, log_min_max, device, threshold):
     
 
 ############################################################################################################
-def eval(model_type, model_backbone, save_name, embed_path, test_loader, log_min_max, s, device, lstm_layers, attn_layers, threshold):
+def eval(model_type, model_backbone, save_name, embed_path, test_loader, log_min_max, s, device, lstm_layers, attn_layers, threshold, extraction_mode):
     ######## LOAD MODEL ########
     num_ingr = 199
     pretrained = False
 
     if model_type == "multimodal" or "customized" or "NutriFusionNet":
-        embeddings = torch.load(f'./utils/embeddings/ingredient_embeddings_{embed_path}.pt', map_location=device, weights_only=True)
+        embeddings = torch.load(f'./embeddings/ingredient_embeddings_{embed_path}.pt', map_location=device, weights_only=True)
         print(embeddings.shape)
 
     if model_type == "NutriFusionNet":
         if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
-            model = NutriFusionNet(num_ingr, model_backbone, embeddings, pretrained, lstm_layers=lstm_layers, num_layers= attn_layers).to(device)
+            model = NutriFusionNet(num_ingr, model_backbone, embeddings, pretrained, lstm_layers=lstm_layers, num_layers= attn_layers, extraction_mode=extraction_mode).to(device)
     elif model_type == "bb_lstm":
         if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
             model = IngrPredModel(num_ingr, model_backbone, pretrained).to(device)
@@ -389,27 +389,33 @@ def eval(model_type, model_backbone, save_name, embed_path, test_loader, log_min
     
     return overall_regression_loss, classification_accuracy, precision, recall, f1_score, results, overall_improvement_percentage / 6
 
-def eval_all_models(model_type, model_backbones, embed_path, device, lstm_layers, attn_layers, thresholds):
-    test_set = perpare_data('resnet', 16, False)
+def eval_all_models(model_type, model_backbones, embed_path, device, lstm_layers, attn_layers, thresholds, extraction_modes, save = False):
+    test_set = perpare_data('resnet', 16, False) # batch size = 16, log_min_max = False
     
     results = {}
-    for model_backbone in model_backbones:
-        for lstm_layer in lstm_layers:
-            for attn_layer in attn_layers:
-                for threshold in thresholds:
-                    # NutriFusionNet_vit_3lstm_2attn_gat_v2_pretrained_da_16_75_25_eval
-                    save_name = f"{model_type}_{model_backbone}_{lstm_layer}lstm_{attn_layer}attn_{embed_path}_pretrained_da_16_75_25"
-                    dict_name = save_name + + "_" + str(threshold)
-                    regression_loss, classification_accuracy, precision, recall, f1_score, ingr_results, improvement = eval(model_type, model_backbone, save_name, embed_path, test_set, False, "all", device, lstm_layer, attn_layer, threshold)
-                    results[dict_name] = {
-                        'regression_loss': regression_loss,
-                        'classification_accuracy': classification_accuracy,
-                        'precision': precision,
-                        'recall': recall,
-                        'f1_score': f1_score,
-                        'ingredient_results': ingr_results,
-                        'overall_improvement': improvement
-                    }
+    for extraction_mode in extraction_modes:
+        for model_backbone in model_backbones:
+            for lstm_layer in lstm_layers:
+                for attn_layer in attn_layers:
+                    for threshold in thresholds:
+                        if extraction_mode == 'lstm':
+                            save_name = f"{model_type}_{model_backbone}_{lstm_layer}lstm_{attn_layer}attn_{embed_path}_pretrained_da_16_75_25"
+                        else:
+                            save_name = f"{model_type}_{model_backbone}_{extraction_mode}_{lstm_layer}lstm_{attn_layer}attn_{embed_path}_pretrained_da_16_75_25"
+                        dict_name = save_name + "_" + str(threshold)
+                        if save:
+                            regression_loss, classification_accuracy, precision, recall, f1_score, ingr_results, improvement = eval(model_type, model_backbone, save_name, embed_path, test_set, False, None, device, lstm_layer, attn_layer, threshold, extraction_mode)
+                        else:
+                            regression_loss, classification_accuracy, precision, recall, f1_score, ingr_results, improvement = eval(model_type, model_backbone, save_name, embed_path, test_set, False, "all", device, lstm_layer, attn_layer, threshold, extraction_mode)
+                        results[dict_name] = {
+                            'regression_loss': regression_loss,
+                            'classification_accuracy': classification_accuracy,
+                            'precision': precision,
+                            'recall': recall,
+                            'f1_score': f1_score,
+                            'ingredient_results': ingr_results,
+                            'overall_improvement': improvement
+                        }
     return results
 
 if __name__ == "__main__":
@@ -437,20 +443,23 @@ if __name__ == "__main__":
     # parser.add_argument('--lstm_layers', type=int, required=False, default=1, help='Number of LSTM layers')
     # parser.add_argument('--attn_layers', type=int, required=False, default=1, help='Number of Attention layers')
     # parser.add_argument('--threshold', type=float, required=False, default=0.0, help='Threshold for classification')
+    # parser.add_argument('--extraction_mode', type=str, required=False, default='lstm', help='Extraction mode for NutriFusionNet')
     
     # args = parser.parse_args()
     
     # test_set = perpare_data(args.model_backbone, args.batch_size, args.log_min_max)
 
     # # Evaluate the model
-    # eval(args.model_type, args.model_backbone, args.model_name, args.embed_path, test_set, args.log_min_max, args.s, device, args.lstm_layers, args.attn_layers, args.threshold)
+    # eval(args.model_type, args.model_backbone, args.model_name, args.embed_path, test_set, args.log_min_max, args.s, device, args.lstm_layers, args.attn_layers, args.threshold, args.extraction_mode)
         
     model_backbones = ['resnet', 'vit']
+    
     lstm_layers = [2]
     attn_layers = [2]
-    thresholds = [0.13, 0.14, 0.15]
+    thresholds = [0.0, 0.05, 0.1, 0.15, 0.2]
+    extraction_modes = ['lstm', 'attn_pooling', 'global_pooling', 'lstm_dropout'] # lstm_dropout 'attn_pooling', 'global_pooling', 'lstm_dropout'
     
-    results = eval_all_models('NutriFusionNet', model_backbones, 'gat_v2', device, lstm_layers, attn_layers, thresholds)
+    results = eval_all_models('NutriFusionNet', model_backbones, 'gat_v2', device, lstm_layers, attn_layers, thresholds, extraction_modes, save = True)
     print(results)
     
     with open('./results/NutriFusionNet_eval_results.csv', 'w') as f:

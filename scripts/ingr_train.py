@@ -85,16 +85,16 @@ def validate_ingr_model(model, val_loader):
     avg_total_loss = total_loss / num_batches
     return avg_total_loss
 
-def train(model_backbone, model_type, embed_path, train_loader, val_loader, batch_size, pretrained, epochs, checkpoint_name, learning_rate, patience, lstm_layers, attn_layers):
+def train(model_backbone, model_type, embed_path, train_loader, val_loader, batch_size, pretrained, epochs, checkpoint_name, learning_rate, patience, lstm_layers, attn_layers, extraction_mode):
     num_ingr = 199
     
     if model_type == "multimodal" or "customized" or "NutriFusionNet":
-        embeddings = torch.load(f'./utils/embeddings/ingredient_embeddings_{embed_path}.pt', map_location=device, weights_only=True)
+        embeddings = torch.load(f'./embeddings/ingredient_embeddings_{embed_path}.pt', map_location=device, weights_only=True)
         print(embeddings.shape)
 
     if model_type == "NutriFusionNet":
         if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
-            model = NutriFusionNet(num_ingr, model_backbone, embeddings, pretrained, lstm_layers=lstm_layers, num_layers= attn_layers).to(device)
+            model = NutriFusionNet(num_ingr, model_backbone, embeddings, pretrained, lstm_layers=lstm_layers, num_layers= attn_layers, extraction_mode=extraction_mode).to(device)
     elif model_type == "bb_lstm":
         if model_backbone == 'vit' or model_backbone == 'convnx' or model_backbone == 'resnet' or model_backbone == 'incept' or model_backbone == 'effnet' or model_backbone == 'convlstm':
             model = IngrPredModel(num_ingr, model_backbone, pretrained).to(device)
@@ -107,7 +107,7 @@ def train(model_backbone, model_type, embed_path, train_loader, val_loader, batc
     
     # Print the number of trainable parameters
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Model Type: {model_type} (Backbone: {model_backbone}, Learning rate: {learning_rate}, Batch Size: {batch_size}, Epochs: {epochs}, Pretrained: {pretrained},  Patience: {patience}, Saved as: {checkpoint_name})")
+    print(f"Model Type: {model_type} (Backbone: {model_backbone}, Learning rate: {learning_rate}, Batch Size: {batch_size}, Epochs: {epochs}, Pretrained: {pretrained},  Patience: {patience}, LSTM Layers: {lstm_layers}, Attention Layers: {attn_layers}, Extraction Mode: {extraction_mode}, Embedding Path: {embed_path}, Save Name: {checkpoint_name})")
     print(f"Number of trainable parameters: {num_params}")
 
     best_val_loss = float('inf')
@@ -203,6 +203,7 @@ if __name__ == '__main__':
     parser.add_argument('--patience', type=int, default=10, help='Patience for early stopping')
     parser.add_argument('--lstm_layers', type=int, required=False, default=1, help='Number of LSTM layers')
     parser.add_argument('--attn_layers', type=int, required=False, default=1, help='Number of Attention layers')
+    parser.add_argument('--extraction_mode', type=str, required=False, default='lstm', help='Extraction mode for the ingredient prediction model')
     
     args = parser.parse_args()
     
@@ -224,4 +225,5 @@ if __name__ == '__main__':
             learning_rate=args.lr,
             patience=args.patience,
             lstm_layers=args.lstm_layers,
-            attn_layers=args.attn_layers)
+            attn_layers=args.attn_layers,
+            extraction_mode=args.extraction_mode)

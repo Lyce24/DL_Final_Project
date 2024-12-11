@@ -233,22 +233,81 @@ class IngrPredModel(nn.Module):
         return outputs
  
 ############## Multimodal Encoder-Decoder Network ##########################
-class IngredientFeatureExtractor(nn.Module):
-    def __init__(self, embedding_dim, hidden_dim, lstm_layers):
-        super(IngredientFeatureExtractor, self).__init__()
+class IngredientFeatureExtractorV2(nn.Module):
+    def __init__(self, embedding_dim, hidden_dim, lstm_layers, extraction_mode="lstm"):
+        super(IngredientFeatureExtractorV2, self).__init__()
         # 300-dimensional GloVe embeddings for ingredients
         # 768-dimensional BERT embeddings for ingredients
-        self.lstm = nn.LSTM(input_size=embedding_dim, hidden_size=hidden_dim, num_layers=lstm_layers, batch_first=True)
-
+        # Transformer Encoder
+        assert extraction_mode in ["lstm", "lstm_dropout", "global_pooling", "attn_pooling", "max_pooling"], f"Invalid extraction mode {extraction_mode}"
+        self.hidden_dim = hidden_dim
+        self.embedding_dim = embedding_dim
+        self.lstm_layers = lstm_layers
+        self.extraction_mode = extraction_mode
+        
+        if extraction_mode == "lstm":
+            self.lstm = nn.LSTM(input_size=embedding_dim, hidden_size=hidden_dim, num_layers=lstm_layers, batch_first=True)
+        elif extraction_mode == "lstm_dropout":
+            self.lstm = nn.LSTM(input_size=embedding_dim, hidden_size=hidden_dim, num_layers=lstm_layers, batch_first=True, dropout=0.3)
+        elif extraction_mode == "global_pooling" or extraction_mode == "max_pooling":
+            self.fc_layers = nn.Sequential(
+                nn.Linear(embedding_dim, hidden_dim),
+                nn.ReLU(),
+                nn.Dropout(0.3),
+            )
+        elif extraction_mode == "attn_pooling":
+            self.query  = nn.Linear(embedding_dim, hidden_dim)
+            self.key = nn.Linear(embedding_dim, hidden_dim)
+            self.value = nn.Linear(embedding_dim, hidden_dim)
+            
+            self.softmax = nn.Softmax(dim=1)
+            self.dropout = nn.Dropout(0.3)
+            
     def forward(self, ingredient_embeddings):
-        # ingredient_embeddings: (num_ingr, embedding_dim) as each image will have the same candidate ingredients
-        # Pass through LSTM
-        lstm_out, _ = self.lstm(ingredient_embeddings)  # Output: (batch, 1, hidden_dim)
+        # Project input embeddings to hidden_dim
+        if self.extraction_mode == "lstm" or self.extraction_mode == "lstm_dropout":
+            # ingredient_embeddings: (num_ingr, embedding_dim) as each image will have the same candidate ingredients
+            # Pass through LSTM
+            lstm_out, _ = self.lstm(ingredient_embeddings)  # Output: (batch, 1, hidden_dim)
+            
+            # Extract the output from the LSTM
+            ingr_feature = lstm_out[:, -1, :]  # Output: (batch, hidden_dim)
+            
+            return ingr_feature
         
-        # Extract the output from the LSTM
-        ingr_feature = lstm_out[:, -1, :]  # Output: (batch, hidden_dim)
+        elif self.extraction_mode == "global_pooling":
+            # Pass through fully connected layers
+            ingr_feature = self.fc_layers(ingredient_embeddings)
+            
+            ingr_feature = ingr_feature.mean(dim=1)  # Output: (batch, hidden_dim)
+            
+            return ingr_feature
         
-        return ingr_feature
+        elif self.extraction_mode == "max_pooling":
+            # Pass through fully connected layers
+            ingr_feature = self.fc_layers(ingredient_embeddings)
+            
+            ingr_feature = ingr_feature.max(dim=1)[0]
+            
+            return ingr_feature
+        
+        elif self.extraction_mode == "attn_pooling":
+            queries = self.query(ingredient_embeddings)
+            keys = self.key(ingredient_embeddings)
+            values = self.value(ingredient_embeddings)
+            
+            # Calculate attention scores
+            attention_scores = torch.bmm(queries, keys.transpose(1, 2)) / (self.hidden_dim ** 0.5) # Output: (batch, num_ingr, num_ingr)
+            
+            # Apply softmax to get attention weights
+            attention_weights = self.softmax(attention_scores)  # Output: (batch, num_ingr, num_ingr)
+            attention_weights = self.dropout(attention_weights) # Output: (batch, num_ingr, num_ingr)
+            
+            # Aggregate the values using the attention weights
+            ingr_feature = torch.bmm(attention_weights, values)  # Output: (batch, num_ingr, hidden_dim)
+            ingr_feature = ingr_feature.mean(dim=1)  # Output: (batch, hidden_dim)
+            
+            return ingr_feature
     
 class ImageFeatureExtractor(nn.Module):
     def __init__(self, backbone='resnet', pretrained=True, hidden_dim=256):
@@ -392,12 +451,12 @@ class SMEDA(nn.Module):
         return ingr_encoded, dish_decoded
         
 class NutriFusionNet(nn.Module):
-    def __init__(self, num_ingr = 199, backbone = "resnet", ingredient_embedding = None, pretrained = True, hidden_dim = 512, lstm_layers = 1, num_heads = 8, dropout = 0.3, epsilon = 1e-6, num_layers = 2):
+    def __init__(self, num_ingr = 199, backbone = "resnet", ingredient_embedding = None, pretrained = True, hidden_dim = 512, lstm_layers = 1, num_heads = 8, dropout = 0.3, epsilon = 1e-6, num_layers = 2, extraction_mode="lstm"):
         super(NutriFusionNet, self).__init__()
         
         self.ingredient_embedding = ingredient_embedding
         
-        self.ingredient_extractor = IngredientFeatureExtractor(embedding_dim=ingredient_embedding.size(1), hidden_dim=hidden_dim, lstm_layers=lstm_layers)
+        self.ingredient_extractor = IngredientFeatureExtractorV2(embedding_dim=ingredient_embedding.size(1), hidden_dim=hidden_dim, lstm_layers=lstm_layers, extraction_mode=extraction_mode)
         self.image_extractor = ImageFeatureExtractor(backbone=backbone, pretrained = pretrained, hidden_dim=hidden_dim)
         
         if num_layers == 1:
@@ -441,7 +500,31 @@ if __name__ == "__main__":
 
     embed = torch.randn(num_ingr, 768) # Assume 768-dimensional embeddings
     tasks = ["calories", "mass", "fat", "carb", "protein"]
-        
+    
+    # # test the ingredient feature extractor
+    # print("\nTesting the IngredientFeatureExtractorV2")
+    test_embed = embed.unsqueeze(0).repeat(16, 1, 1)
+
+    ingr_extractor = IngredientFeatureExtractorV2(embedding_dim=768, hidden_dim=512, lstm_layers=2, extraction_mode="lstm")
+    output = ingr_extractor(test_embed)
+    print(f"Output shape: {output.shape}") # (batch_size, hidden_dim)
+    
+    ingr_extractor = IngredientFeatureExtractorV2(embedding_dim=768, hidden_dim=512, lstm_layers=2, extraction_mode="lstm_dropout")
+    output = ingr_extractor(test_embed)
+    print(f"Output shape: {output.shape}") # (batch_size, hidden_dim)
+    
+    ingr_extractor = IngredientFeatureExtractorV2(embedding_dim=768, hidden_dim=512, lstm_layers=2, extraction_mode="attn_pooling")
+    output = ingr_extractor(test_embed)
+    print(f"Output shape: {output.shape}") # (batch_size, hidden_dim)
+    
+    ingr_extractor = IngredientFeatureExtractorV2(embedding_dim=768, hidden_dim=512, lstm_layers=2, extraction_mode="global_pooling")
+    output = ingr_extractor(test_embed)
+    print(f"Output shape: {output.shape}") # (batch_size, hidden_dim)
+    
+    ingr_extractor = IngredientFeatureExtractorV2(embedding_dim=768, hidden_dim=512, lstm_layers=2, extraction_mode="max_pooling")
+    output = ingr_extractor(test_embed)
+    print(f"Output shape: {output.shape}") # (batch_size, hidden_dim)
+    
     print("\nTesting the BaselineModel")
     test_model = BaselineModel(num_ingr)
     output = test_model(x)
