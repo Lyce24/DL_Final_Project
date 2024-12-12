@@ -1,0 +1,2 @@
+model_parameters,regression_loss,classification_accuracy,precision,recall,f1_score,avg_mae,calories_mae,mass_mae,fat_mae,carbs_mae,protein_mae,overall_improvement
+NutriFusionNet_gat_512,0.03400000000000002,0.7617999999999999,0.15879999999999997,0.9154000000000001,0.26239999999999997,26.948520000000002,73.264,44.95320000000001,4.1448,6.153800000000001,6.226800000000001,58.3384

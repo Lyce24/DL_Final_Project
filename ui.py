@@ -11,10 +11,10 @@ import numpy as np
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 #============== Load the model ==============#
-embeddings = torch.load(f'./utils/embeddings/ingredient_embeddings_gat_v2.pt', map_location=device, weights_only=True)
+embeddings = torch.load(f'./embeddings/ingredient_embeddings_gat_512.pt', map_location=device, weights_only=True)
 
-model = NutriFusionNet(num_ingr=199, backbone='vit', ingredient_embedding=embeddings, hidden_dim=512, lstm_layers=2, num_layers=2).to(device)
-model.load_state_dict(torch.load("models/checkpoints/NutriFusionNet_vit_2lstm_2attn_gat_v2_pretrained_da_16_75_25.pth", map_location=device, weights_only=True))
+model = NutriFusionNet(num_ingr=199, backbone='vit', ingredient_embedding=embeddings, hidden_dim=512, lstm_layers=2, num_layers=2, extraction_mode='global_pooling').to(device)
+model.load_state_dict(torch.load("./models/checkpoints/NutriFusionNet_vit_global_pooling_2lstm_2attn_gat_512_pretrained_da_16_75_25.pth", map_location=device, weights_only=True))
 
 # Preprocess the image
 transform = transforms.Compose([
