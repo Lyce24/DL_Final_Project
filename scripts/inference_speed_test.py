@@ -145,7 +145,7 @@ def eval(model_type, model_backbone, save_name, embed_path, test_loader, device,
     return speed
 
 def eval_all_models(model_type, model_backbones, embed_path, device, lstm_layers, attn_layers, extraction_modes):
-    test_set = perpare_data('resnet', 3000, False) # batch size = 16, log_min_max = False
+    test_set = perpare_data('resnet', 16, False) # batch size = 16, log_min_max = False
     
     results = {}
     for extraction_mode in extraction_modes:

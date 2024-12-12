@@ -455,9 +455,9 @@ if __name__ == "__main__":
     model_backbones = ['resnet', 'vit']
     
     lstm_layers = [2]
-    attn_layers = [2]
+    attn_layers = [1,2,3]
     thresholds = [0.0, 0.05, 0.1, 0.15, 0.2]
-    extraction_modes = ['max_pooling'] # lstm_dropout 'attn_pooling', 'global_pooling', 'lstm_dropout'
+    extraction_modes = ['attn_pooling', 'global_pooling'] # lstm_dropout 'attn_pooling', 'global_pooling', 'lstm_dropout'
     
     results = eval_all_models('NutriFusionNet', model_backbones, 'gat_512', device, lstm_layers, attn_layers, thresholds, extraction_modes, save = False)
     print(results)

@@ -3,7 +3,7 @@
 # Slurm commands
 #SBATCH --partition=gpus             # Use the GPU partition
 #SBATCH --gres=gpu:1                 # Request No. of GPUs
-#SBATCH --nodelist=gpu1702           # Explicitly request GPUs
+#SBATCH --nodelist=gpu1704           # Explicitly request GPUs
 #SBATCH --time=24:00:00              # Maximum runtime
 #SBATCH --mem=24G                    # Memory allocation
 #SBATCH -J NutriFusionNetV2                      # Job name
@@ -31,8 +31,8 @@
 # MODEL_TYPE="bb_lstm", "baseline", "NutriFusionNet"
 # Extraction mode: "attn_pooling", "global_pooling", "lstm" (default), "lstm_dropout", "max_pooling"
 MODEL_TYPE="NutriFusionNet"
-MODEL_BACKBONE="resnet"
-EMBED_PATH="bert"
+MODEL_BACKBONE="vit"
+EMBED_PATH="gat_512"
 PRETRAINED="True"
 LOG_MIN_MAX="False"
 DATA_AUGMENTATION="True"
@@ -40,11 +40,11 @@ BATCH_SIZE=16
 EPOCHS=75
 PATIENCE=25
 LSTM_LAYERS=2
-ATTN_LAYERS=2
-EXTRACTION_MODE="max_pooling"
+ATTN_LAYERS=1
+EXTRACTION_MODE="global_pooling"
 
 # save_name = model_type + "_" + model_backbone + "_" + embed_path + "_" + pretrained + "_" + log_min_max + "_" + da + "_" + batch_size + "_" + epochs + "_" + patience
-SAVE_NAME="NutriFusionNet_resnet_max_pooling_2lstm_2attn_bert_pretrained_da_16_75_25"
+SAVE_NAME="NutriFusionNet_vit_global_pooling_2lstm_1attn_gat_512_pretrained_da_16_75_25"
 
 # Print the job configuration for logging purposes
 echo "Running model training with the following configuration:"
