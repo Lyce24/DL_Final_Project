@@ -92,7 +92,7 @@ For more detailed results, see the [performance comparison](https://github.com/L
 
 ## References
 
-For a complete list of references and detailed documentation, please refer to the [project report](https://github.com/Lyce24/NutriFusionNet/blob/main/report.pdf).
+For a complete list of references and detailed documentation, please refer to the [project report](https://github.com/Lyce24/NutriFusionNet/blob/main/NutriFusionNet_Report.pdf).
 
 ---
 
